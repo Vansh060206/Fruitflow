@@ -1,0 +1,283 @@
+"use client";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
+import { useLanguage } from "@/lib/language-context";
+import { toast } from "sonner";
+import { EmailVerificationWall } from "@/components/EmailVerificationWall";
+
+// ... (keep structure)
+
+import {
+    LayoutDashboard,
+    ShoppingBag,
+    ShoppingCart,
+    Package,
+    Heart,
+    CreditCard,
+    Settings,
+    LogOut,
+    Menu,
+    X,
+    User,
+    AlertCircle,
+    AlertTriangle
+} from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle"; // Added import
+
+export function RetailerShell({ children }) {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const canvasRef = useRef(null);
+    const router = useRouter();
+    const { logout, userData, user } = useAuth();
+    const pathname = usePathname();
+    const { cartCount } = useCart();
+    const { language, switchLanguage, t } = useLanguage();
+
+    const userInitials = userData?.name
+        ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : 'RT';
+
+
+    const handleLogout = () => {
+        if (window.confirm("Are you sure you want to logout?")) {
+            logout();
+            router.push("/");
+        }
+    };
+
+    // ... (keep Canvas Animation useEffect)
+
+    const navLinks = [
+        { href: "/retailer/dashboard", icon: LayoutDashboard, label: t("dashboard") },
+        { href: "/retailer/browse", icon: ShoppingBag, label: t("browseProducts") },
+        { href: "/retailer/cart", icon: ShoppingCart, label: t("cart") },
+        { href: "/retailer/orders", icon: Package, label: t("myOrders") },
+        { href: "/retailer/favorites", icon: Heart, label: t("favorites") },
+        { href: "/retailer/payments", icon: CreditCard, label: t("payments") },
+        { href: "/retailer/settings", icon: Settings, label: t("settings") },
+    ];
+
+    return (
+        <div className="min-h-screen bg-background relative overflow-hidden transition-colors duration-300">
+            <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+
+            <div className="relative z-10 flex">
+                {/* Sidebar */}
+                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-8">
+                            <h1 className="text-2xl font-bold text-foreground dark:text-white">FruitFlow</h1>
+                            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-muted-foreground hover:text-foreground">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <nav className="space-y-2 relative">
+                            {navLinks.map((link) => {
+                                const isActive = pathname === link.href;
+                                const Icon = link.icon;
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg relative overflow-hidden transition-all duration-300 ${isActive ? "text-purple-500 font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-white/5 dark:text-white/60 dark:hover:text-white"}`}
+                                    >
+                                        {isActive && (<div className="absolute inset-0 bg-purple-500/10 rounded-lg animate-in fade-in duration-300" />)}
+                                        {isActive && (<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full shadow-[0_0_10px_rgba(168,85,247,0.5)] animate-in slide-in-from-left duration-300" />)}
+                                        <Icon className="w-5 h-5 relative z-10" />
+                                        <span className="relative z-10">{link.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:text-white/60 dark:hover:text-white dark:hover:bg-white/5 transition-colors w-full">
+                            <LogOut className="w-5 h-5" />
+                            {t("logout")}
+                        </button>
+                    </div>
+                </aside>
+
+                <main className="flex-1 min-h-screen">
+                    {/* Header */}
+                    <header className="bg-card/50 backdrop-blur-xl border-b border-border p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground">
+                                    <Menu className="w-6 h-6" />
+                                </button>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground transition-colors duration-300 dark:text-white">
+                                        {pathname === "/retailer/dashboard" && t("dashboard")}
+                                        {pathname === "/retailer/browse" && t("browseProducts")}
+                                        {pathname === "/retailer/cart" && t("cart")}
+                                        {pathname === "/retailer/orders" && t("myOrders")}
+                                        {pathname === "/retailer/favorites" && t("favorites")}
+                                        {pathname === "/retailer/payments" && t("payments")}
+                                        {pathname === "/retailer/settings" && t("accountSettings")}
+                                        {pathname === "/retailer/profile" && t("profile")}
+                                    </h2>
+                                    <p className="text-muted-foreground text-sm hidden sm:block transition-colors duration-300 dark:text-white/60">
+                                        {t("welcomeBack")}, {userData?.name || t("shopper")}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 relative">
+                                <Link href="/retailer/cart" className="relative text-muted-foreground hover:text-foreground transition-colors mr-2 dark:text-white/60 dark:hover:text-white">
+                                    <ShoppingCart className="w-6 h-6" />
+                                    {cartCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </Link>
+
+                                <ThemeToggle />
+
+                                {/* Language Toggle */}
+                                <div className="hidden md:flex items-center gap-2 bg-muted rounded-full p-1 border border-border dark:bg-white/5 dark:border-white/10">
+                                    <button
+                                        onClick={() => switchLanguage('en')}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${language === 'en' ? 'bg-purple-500/20 text-purple-500' : 'text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white'}`}
+                                    >
+                                        EN
+                                    </button>
+                                    <button
+                                        onClick={() => switchLanguage('hi')}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${language === 'hi' ? 'bg-purple-500/20 text-purple-500' : 'text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white'}`}
+                                    >
+                                        HI
+                                    </button>
+                                </div>
+
+                                {/* Profile Dropdown Trigger */}
+                                <button
+                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                    className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center hover:bg-purple-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 relative z-50 overflow-hidden"
+                                >
+                                    {userData?.photoURL ? (
+                                        <img src={userData.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-purple-500 font-semibold">{userInitials}</span>
+                                    )}
+                                </button>
+
+                                {/* Profile Dropdown Menu */}
+                                {isProfileOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsProfileOpen(false)}
+                                        />
+                                        <div className="absolute right-0 top-12 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 dark:bg-[#1a1a1a] dark:border-white/10">
+                                            <div className="p-4 border-b border-border bg-muted/50 dark:bg-white/5 dark:border-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center overflow-hidden">
+                                                        {userData?.photoURL ? (
+                                                            <img src={userData.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-purple-500 font-bold">{userInitials}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="overflow-hidden">
+                                                        <p className="text-foreground font-medium truncate">{userData?.name || t("shopper")}</p>
+                                                        <p className="text-muted-foreground text-xs truncate">{userData?.email || "No email provided"}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-1 space-y-1">
+                                                <Link
+                                                    href="/retailer/profile"
+                                                    className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors text-sm dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5"
+                                                    onClick={() => setIsProfileOpen(false)}
+                                                >
+                                                    <User className="w-4 h-4" />
+                                                    {t("profile")}
+                                                </Link>
+                                                <Link
+                                                    href="/retailer/settings"
+                                                    className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors text-sm dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5"
+                                                    onClick={() => setIsProfileOpen(false)}
+                                                >
+                                                    <Settings className="w-4 h-4" />
+                                                    {t("accountSettings")}
+                                                </Link>
+                                            </div>
+                                            <div className="p-1 border-t border-border dark:border-white/5">
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm"
+                                                >
+                                                    <LogOut className="w-4 h-4" />
+                                                    {t("signOut")}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+
+                    {/* Security Banners */}
+                    <div className="px-6 pt-6 -mb-2 space-y-3">
+                        {userData && !userData.phone && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top duration-500">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground dark:text-white">Complete your Retailer profile</p>
+                                        <p className="text-xs text-muted-foreground dark:text-white/60">Phone number and store name are required for ordering.</p>
+                                    </div>
+                                </div>
+                                <Link href="/retailer/settings" className="text-xs font-bold text-amber-500 hover:underline">Complete Now</Link>
+                            </div>
+                        )}
+                        {user && !user.emailVerified && (
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top duration-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                        <AlertCircle className="w-4 h-4 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground dark:text-white">Email not verified</p>
+                                        <p className="text-xs text-muted-foreground dark:text-white/60">Please check your inbox to verify your account.</p>
+                                    </div>
+                                </div>
+                                <button className="text-xs font-bold text-blue-500 hover:underline" onClick={() => {
+                                    import("firebase/auth").then(({ sendEmailVerification }) => {
+                                        if (user) sendEmailVerification(user).then(() => {
+                                            toast.success("Verification link resent!");
+                                        });
+                                    });
+                                }}>Resend Link</button>
+                            </div>
+                        )}
+                    </div>
+
+                    <EmailVerificationWall>
+                        {children}
+                    </EmailVerificationWall>
+                </main>
+            </div>
+
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
