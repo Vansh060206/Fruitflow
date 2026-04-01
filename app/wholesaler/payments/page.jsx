@@ -42,7 +42,9 @@ function WholesalerPaymentsContent() {
           const retailerId = order.retailerId || "unknown";
           const retailerName = order.retailerName || "Unnamed Retailer";
 
-          if (order.paymentStatus === "pending") {
+          const paymentStatus = order.paymentStatus || "pending";
+
+          if (paymentStatus === "pending") {
             if (!retailerMap[retailerId]) {
               retailerMap[retailerId] = {
                 id: retailerId,
@@ -63,7 +65,7 @@ function WholesalerPaymentsContent() {
               retailerMap[retailerId].status = "overdue";
               retailerMap[retailerId].daysOverdue = Math.max(retailerMap[retailerId].daysOverdue, daysDiff);
             }
-          } else if (order.paymentStatus === "paid") {
+          } else if (paymentStatus === "paid") {
             paymentLogs.push({
               id: orderId,
               retailerName: retailerName,
@@ -91,15 +93,20 @@ function WholesalerPaymentsContent() {
     try {
       const updates = {};
       customer.orderIds.forEach(id => {
+        // Update Wholesaler's DB
         updates[`orders/${userData.uid}/${id}/paymentStatus`] = "paid";
         updates[`orders/${userData.uid}/${id}/updatedAt`] = Date.now();
-        // Also update in retailer's view
-        // Note: In a real system, we'd need the retailer ID from the order
+
+        // Push the update to Retailer's DB too!
+        if (customer.id && customer.id !== "unknown") {
+          updates[`retailer_orders/${customer.id}/${id}/paymentStatus`] = "paid";
+          updates[`retailer_orders/${customer.id}/${id}/updatedAt`] = Date.now();
+        }
       });
       await update(ref(realtimeDb), updates);
       toast.success(`Marked all orders from ${customer.retailerName} as paid.`);
     } catch (err) {
-      console.error(err);
+      console.error("Mark Paid Error:", err);
       toast.error("Failed to update payment status.");
     }
   };

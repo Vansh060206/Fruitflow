@@ -154,10 +154,12 @@ function PaymentsContent() {
                         <td className="px-6 py-4 text-foreground font-medium dark:text-white">{payment.id}</td>
                         <td className="px-6 py-4 text-foreground dark:text-white">₹{payment.amount.toFixed(2)}</td>
                         <td className="px-6 py-4 text-muted-foreground dark:text-white/60">
-                          {new Date(payment.date).toLocaleDateString("en-US", {
+                          {new Date(payment.date).toLocaleString("en-US", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
                           })}
                         </td>
                         <td className="px-6 py-4">
@@ -213,10 +215,12 @@ function PaymentsContent() {
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-sm dark:text-white/60">{t("date")}</span>
                         <span className="text-muted-foreground text-sm dark:text-white/60">
-                          {new Date(payment.date).toLocaleDateString("en-US", {
+                          {new Date(payment.date).toLocaleString("en-US", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
                           })}
                         </span>
                       </div>
@@ -231,8 +235,9 @@ function PaymentsContent() {
             </div>
           </Card>
         </>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

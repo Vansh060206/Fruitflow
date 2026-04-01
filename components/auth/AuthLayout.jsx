@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"; // Added import
 
 export default function AuthLayout({ children, role, title, subtitle }) {
     const { t } = useLanguage();
-    const currentRole = role === "wholesaler" ? "wholesaler" : "retailer";
+    const currentRole = role === "wholesaler" ? "wholesaler" : role === "driver" ? "driver" : "retailer";
     const theme = {
         retailer: {
             primary: "bg-emerald-600",
@@ -32,6 +32,18 @@ export default function AuthLayout({ children, role, title, subtitle }) {
             shape2: "bg-orange-300 dark:bg-orange-700",
             icon: <Truck className="w-12 h-12 text-amber-600 dark:text-amber-400" />,
         },
+        driver: {
+            primary: "bg-purple-600",
+            primaryHover: "hover:bg-purple-700",
+            secondary: "bg-purple-50 dark:bg-purple-950/20",
+            text: "text-purple-900 dark:text-purple-100",
+            subtitleText: "text-purple-800/70 dark:text-purple-100/60",
+            accent: "text-purple-600 dark:text-purple-400",
+            illustration: "from-purple-50 to-indigo-100 dark:from-purple-950 dark:to-indigo-900",
+            shape1: "bg-purple-300 dark:bg-purple-700",
+            shape2: "bg-indigo-300 dark:bg-indigo-700",
+            icon: <Truck className="w-12 h-12 text-purple-600 dark:text-purple-400" />,
+        },
     }[currentRole];
 
     return (
@@ -45,7 +57,7 @@ export default function AuthLayout({ children, role, title, subtitle }) {
 
                     {/* Stylized Tree/Organic shapes mimicking the reference art */}
                     <svg className="absolute left-0 bottom-0 w-full h-full opacity-20 pointer-events-none" viewBox="0 0 400 400">
-                        <path d="M0,400 C150,400 150,200 200,200 C250,200 250,0 250,0 L0,0 Z" fill="currentColor" className={currentRole === 'retailer' ? 'text-emerald-900/40 dark:text-emerald-200/20' : 'text-amber-900/40 dark:text-amber-200/20'} />
+                        <path d="M0,400 C150,400 150,200 200,200 C250,200 250,0 250,0 L0,0 Z" fill="currentColor" className={currentRole === 'retailer' ? 'text-emerald-900/40 dark:text-emerald-200/20' : currentRole === 'driver' ? 'text-purple-900/40 dark:text-purple-200/20' : 'text-amber-900/40 dark:text-amber-200/20'} />
                     </svg>
                 </div>
 
@@ -60,12 +72,12 @@ export default function AuthLayout({ children, role, title, subtitle }) {
                                 </div>
                                 <div className="space-y-2">
                                     <h3 className={`text-2xl font-bold ${theme.text} transition-colors duration-300`}>
-                                        {t("role") || "Role"}: {currentRole === 'retailer' ? t("retailer") : t("wholesaler")}
+                                        {t("role") || "Role"}: {currentRole === 'retailer' ? t("retailer") : currentRole === "driver" ? t("driver") || "Driver" : t("wholesaler")}
                                     </h3>
                                     <p className={`${theme.subtitleText} text-sm transition-colors duration-300`}>
                                         {currentRole === 'retailer'
                                             ? t("retailerRoleDesc")
-                                            : t("wholesalerRoleDesc")
+                                            : currentRole === 'driver' ? "Manage assigned delivery routes" : t("wholesalerRoleDesc")
                                         }
                                     </p>
                                 </div>
@@ -101,7 +113,7 @@ export default function AuthLayout({ children, role, title, subtitle }) {
                 <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                     <div className="text-center lg:text-left space-y-2">
                         <p className={`font-semibold tracking-wide uppercase text-xs ${theme.accent}`}>
-                            {currentRole === 'wholesaler' ? t("forSellers") : t("forBuyers")}
+                            {currentRole === 'wholesaler' ? t("forSellers") : currentRole === 'driver' ? "For Logistics" : t("forBuyers")}
                         </p>
                         <h2 className="text-3xl font-bold tracking-tight text-foreground transition-colors duration-300">{title}</h2>
                         <p className="text-muted-foreground transition-colors duration-300">{subtitle}</p>
@@ -119,6 +131,11 @@ export default function AuthLayout({ children, role, title, subtitle }) {
                                 ? 'bg-background text-amber-600 shadow-sm dark:bg-white/10 dark:text-amber-400'
                                 : 'text-muted-foreground hover:text-foreground'}`}>
                                 {t("wholesaler")}
+                            </Link>
+                            <Link href="?role=driver" className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${currentRole === 'driver'
+                                ? 'bg-background text-purple-600 shadow-sm dark:bg-white/10 dark:text-purple-400'
+                                : 'text-muted-foreground hover:text-foreground'}`}>
+                                {t("driver") || "Driver"}
                             </Link>
                         </div>
                     </div>

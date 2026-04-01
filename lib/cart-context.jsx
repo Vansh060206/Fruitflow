@@ -1,13 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
     const [cartItems, setCartItems] = useState([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load cart from localStorage on mount (client-side only)
+    // Initial Load from localStorage (runs once on mount)
     useEffect(() => {
         const savedCart = localStorage.getItem("retailer_cart");
         if (savedCart) {
@@ -17,12 +18,15 @@ export function CartProvider({ children }) {
                 console.error("Failed to parse cart from local storage", e);
             }
         }
+        setIsLoaded(true); // Signal that we have finished trying to load
     }, []);
 
-    // Save cart to localStorage whenever it changes
+    // 2. Sync to localStorage (runs whenever cartItems changes, BUT only after initial load)
     useEffect(() => {
-        localStorage.setItem("retailer_cart", JSON.stringify(cartItems));
-    }, [cartItems]);
+        if (isLoaded) {
+            localStorage.setItem("retailer_cart", JSON.stringify(cartItems));
+        }
+    }, [cartItems, isLoaded]);
 
     const addToCart = (product) => {
         setCartItems((prevItems) => {
@@ -79,19 +83,19 @@ export function CartProvider({ children }) {
         0
     );
 
+    const value = useMemo(() => ({
+        cartItems,
+        addToCart,
+        addMultipleToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        cartCount,
+        cartTotal,
+    }), [cartItems, cartCount, cartTotal]);
+
     return (
-        <CartContext.Provider
-            value={{
-                cartItems,
-                addToCart,
-                addMultipleToCart,
-                removeFromCart,
-                updateQuantity,
-                clearCart,
-                cartCount,
-                cartTotal,
-            }}
-        >
+        <CartContext.Provider value={value}>
             {children}
         </CartContext.Provider>
     );

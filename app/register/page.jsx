@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Eye, EyeOff, Lock, Mail, User, Loader2, Store, Phone, MapPin, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, User, Loader2, Store, Phone, MapPin, CheckCircle2, Truck, Hash } from "lucide-react"
 import { createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from "firebase/auth"
-import { ref, set, get, serverTimestamp } from "firebase/database"
+import { ref, set, get, serverTimestamp, query, orderByChild, equalTo } from "firebase/database"
 import { auth, realtimeDb, googleProvider } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { useEffect } from "react"
@@ -45,9 +45,7 @@ const formSchema = z.object({
         .regex(/[0-9]/, "Include one number")
         .regex(/[^A-Za-z0-9]/, "Include one special character"),
     confirmPassword: z.string(),
-    companyName: z.string()
-        .min(3, "Company/Store name must be at least 3 characters")
-        .refine((val) => !["asdf", "qwerty", "test", "none", "blank", "123"].includes(val.toLowerCase()), "Please enter a real company/store name"),
+    companyName: z.string().optional(),
     phone: z.string()
         .length(10, "Phone number must be exactly 10 digits")
         .regex(/^[6-9]\d{9}$/, "Please enter a valid Indian mobile number")
@@ -61,6 +59,8 @@ const formSchema = z.object({
     city: z.string().min(2, "City is required"),
     state: z.string().min(2, "State is required"),
     country: z.string().min(2, "Country is required"),
+    vehicleNumber: z.string().optional(),
+    vehicleType: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -81,13 +81,13 @@ function RegisterView() {
         }
 
         if (isAuthenticated && authRole) {
-            router.push(authRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(authRole === 'wholesaler' ? '/wholesaler/dashboard' : authRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         }
     }, [isAuthenticated, authRole, router]);
     const { t } = useLanguage()
 
-    const themeColor = role === 'wholesaler' ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'
-    const buttonColor = role === 'wholesaler' ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
+    const themeColor = role === 'wholesaler' ? 'text-amber-600 hover:text-amber-700' : role === 'driver' ? 'text-purple-600 hover:text-purple-700' : 'text-emerald-600 hover:text-emerald-700'
+    const buttonColor = role === 'wholesaler' ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500' : role === 'driver' ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
 
 
     const form = useForm({
@@ -103,6 +103,8 @@ function RegisterView() {
             city: "",
             state: "",
             country: "",
+            vehicleNumber: "",
+            vehicleType: "Bike",
         },
     })
 
@@ -113,30 +115,80 @@ function RegisterView() {
 
         // Simulate network delay
         setTimeout(() => {
-            window.location.href = submittedRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard';
+            window.location.href = submittedRole === 'wholesaler' ? '/wholesaler/dashboard' : submittedRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard';
         }, 500);
     }
 
     async function onSubmit(values) {
         setIsLoading(true);
+
+        if (role === 'driver') {
+            let hasError = false;
+            if (!values.vehicleNumber || values.vehicleNumber.trim() === '') {
+                form.setError("vehicleNumber", { type: "manual", message: "Vehicle Number is required for drivers" });
+                hasError = true;
+            }
+            if (!values.vehicleType || values.vehicleType.trim() === '') {
+                form.setError("vehicleType", { type: "manual", message: "Vehicle Type is required for drivers" });
+                hasError = true;
+            }
+            if (hasError) {
+                setIsLoading(false);
+                return;
+            }
+        } else {
+            let hasError = false;
+            if (!values.companyName || values.companyName.trim().length < 3) {
+                form.setError("companyName", { type: "manual", message: "Company/Store name must be at least 3 characters" });
+                hasError = true;
+            } else if (["asdf", "qwerty", "test", "none", "blank", "123"].includes(values.companyName.toLowerCase())) {
+                form.setError("companyName", { type: "manual", message: "Please enter a real company/store name" });
+                hasError = true;
+            }
+            if (hasError) {
+                setIsLoading(false);
+                return;
+            }
+        }
         try {
             const email = values.email.trim();
+            const phone = values.phone.trim();
+
+            // Check if phone number already exists in RTDB
+            const phoneQuery = query(ref(realtimeDb, 'users'), orderByChild('phone'), equalTo(phone));
+            const phoneSnapshot = await get(phoneQuery);
+
+            if (phoneSnapshot.exists()) {
+                toast.error("This phone number is already linked to an account.");
+                setIsLoading(false);
+                return;
+            }
+
             const result = await createUserWithEmailAndPassword(auth, email, values.password);
             const user = result.user;
 
             console.log("Registration successful! User UID:", user.uid);
 
-            // Send Email Verification
+            // Send Email OTP
             try {
-                await sendEmailVerification(user);
-                toast.success("Account created! A verification email has been sent to your inbox.", {
-                    duration: 10000,
+                const otpRes = await fetch('/api/auth/send-email-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: user.email,
+                        userId: user.uid,
+                        name: values.name
+                    }),
                 });
-            } catch (verificationError) {
-                console.error("Firebase Verification Email Error:", verificationError);
-                toast.warning(`Account created, but we couldn't send the verification email: ${verificationError.message}`, {
-                    duration: 15000,
-                });
+
+                if (otpRes.ok) {
+                    toast.success("Account created! A 6-digit verification code has been sent to your email.");
+                } else {
+                    const errorData = await otpRes.json();
+                    toast.error(`Account created, but email failed: ${errorData.details || "SMTP Error"}`);
+                }
+            } catch (otpError) {
+                console.error("Failed to send initial OTP:", otpError);
             }
 
             // Also send a welcome email through our reliable NodeMailer API
@@ -168,12 +220,17 @@ function RegisterView() {
                 createdAt: serverTimestamp(),
                 role: role,
                 totalSales: 0,
-                isVerified: false
+                isVerified: false,
+                ...(role === 'driver' && {
+                    vehicleNumber: values.vehicleNumber,
+                    vehicleType: values.vehicleType,
+                    driverStatus: "offline"
+                })
             };
             await set(ref(realtimeDb, `users/${user.uid}`), userData);
 
-            // Redirect to a 'Please Verify' page or just dashboard with a warning
-            router.push(role === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            // Redirect to a 'Please Verify' page
+            router.push("/verify-account");
         } catch (error) {
             // Suppress console error if it's a known user-correction error
             if (error.code !== 'auth/email-already-in-use') {
@@ -239,14 +296,14 @@ function RegisterView() {
                 if (snapshot.val().role && snapshot.val().role !== role) {
                     toast.warning(`You are already registered as a ${snapshot.val().role.toUpperCase()}. Switching dashboards...`);
                     setTimeout(() => {
-                        router.push(snapshot.val().role === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+                        router.push(snapshot.val().role === 'wholesaler' ? '/wholesaler/dashboard' : snapshot.val().role === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
                     }, 2000);
                     setIsLoading(false);
                     return;
                 }
             }
 
-            router.push(finalRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(finalRole === 'wholesaler' ? '/wholesaler/dashboard' : finalRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         } catch (error) {
             console.error("Google login failed:", error);
         } finally {
@@ -279,22 +336,24 @@ function RegisterView() {
                         )}
                     />
 
-                    <FormField
-                        control={form.control}
-                        name="companyName"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="sr-only">Company Name</FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Store className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input placeholder="Company Name" className="pl-10 h-11 bg-muted border-border focus:bg-background transition-all rounded-full text-foreground placeholder:text-muted-foreground dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-white/40" {...field} />
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    {role !== 'driver' && (
+                        <FormField
+                            control={form.control}
+                            name="companyName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Company Name</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Store className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input placeholder="Company Name" className="pl-10 h-11 bg-muted border-border focus:bg-background transition-all rounded-full text-foreground placeholder:text-muted-foreground dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-white/40" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
 
                     <FormField
                         control={form.control}
@@ -364,6 +423,53 @@ function RegisterView() {
                             </FormItem>
                         )}
                     />
+
+                    {role === 'driver' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="vehicleNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="sr-only">Vehicle Number</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Input placeholder="Vehicle Number (e.g. MH01)" className="pl-10 h-11 bg-muted border-border focus:bg-background transition-all rounded-full" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="vehicleType"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="sr-only">Vehicle Type</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Truck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <select
+                                                    className="w-full pl-10 h-11 bg-muted border-border focus:bg-background transition-all rounded-full text-foreground appearance-none"
+                                                    {...field}
+                                                >
+                                                    <option value="" disabled>Select Vehicle</option>
+                                                    <option value="Bike">Bike</option>
+                                                    <option value="Auto">Auto</option>
+                                                    <option value="Pickup">Pickup</option>
+                                                    <option value="Tempo">Tempo</option>
+                                                    <option value="Mini Truck">Mini Truck</option>
+                                                </select>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    )}
 
                     <FormField
                         control={form.control}

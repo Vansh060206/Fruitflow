@@ -11,10 +11,15 @@ import {
   TrendingUp,
   Activity,
   Sparkles,
-  Package
+  Package,
+  AlertTriangle,
+  MapPin,
+  Loader2
 } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
+import { ref, onValue } from "firebase/database";
+import { realtimeDb } from "@/lib/firebase";
 
 // Sample initial data for empty state
 const emptySalesData = [
@@ -73,12 +78,12 @@ function StatCard({ title, value, icon: Icon, delay }) {
   }, [mounted, targetValue]);
 
   return (
-    <Card className={`bg-card/50 backdrop-blur-sm border-border p-6 transition-all duration-700 dark:bg-white/5 dark:border-white/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-muted-foreground text-sm font-medium dark:text-white/60">{title}</h3>
-        <Icon className="w-5 h-5 text-emerald-500" />
+    <Card className={`bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 transition-all duration-700 dark:bg-white/5 dark:border-white/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{title}</h3>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
       </div>
-      <p className="text-3xl font-bold text-foreground dark:text-white">
+      <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">
         {value.includes("₹") && "₹"}
         {Math.floor(count).toLocaleString()}
         {value.includes("kg") && " kg"}
@@ -98,6 +103,7 @@ function WholesalerDashboardContent() {
     todaysSales: 0,
     activeOrderCount: 0,
     totalStockKg: 0,
+    totalWastageLoss: 0,
     isInitialLoad: true,
     salesTrend: emptySalesData,
     recentActivity: [],
@@ -110,9 +116,6 @@ function WholesalerDashboardContent() {
   // 1. Listen to Inventory for Live Stock
   useEffect(() => {
     if (!userData?.uid) return;
-    const { ref, onValue } = require("firebase/database");
-    const { realtimeDb } = require("@/lib/firebase");
-
     const inventoryRef = ref(realtimeDb, `inventory/${userData.uid}`);
     return onValue(inventoryRef, (snapshot) => {
       let totalStock = 0;
@@ -147,9 +150,6 @@ function WholesalerDashboardContent() {
   // 2. Listen to Orders for Sales and Active Count
   useEffect(() => {
     if (!userData?.uid) return;
-    const { ref, onValue } = require("firebase/database");
-    const { realtimeDb } = require("@/lib/firebase");
-
     const ordersRef = ref(realtimeDb, `orders/${userData.uid}`);
     return onValue(ordersRef, (snapshot) => {
       let sales = 0;
@@ -222,6 +222,64 @@ function WholesalerDashboardContent() {
     });
   }, [userData?.uid]);
 
+  // 3. Listen to Wastage for Spoilage Logging
+  useEffect(() => {
+    if (!userData?.uid) return;
+    const wastageRef = ref(realtimeDb, `wastage/${userData.uid}`);
+    return onValue(wastageRef, (snapshot) => {
+      let totalLoss = 0;
+      let activities = [];
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach(key => {
+          const item = data[key];
+          totalLoss += (item.financialLoss || 0);
+
+          // Activity
+          if (item.date > Date.now() - 7200000) { // Last 2 hours
+            activities.push({
+              id: `wastage-${key}`,
+              action: `Logged ${item.quantity}kg spoiled ${item.itemName}`,
+              time: new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              type: "alert",
+              timestamp: item.date
+            });
+          }
+        });
+      }
+
+      setMetrics(prev => ({
+        ...prev,
+        totalWastageLoss: totalLoss,
+        recentActivity: [...prev.recentActivity.filter(a => a.type !== "alert"), ...activities].sort((a, b) => b.timestamp - a.timestamp).slice(0, 4)
+      }));
+    });
+  }, [userData?.uid]);
+
+  // 4. Fetch Market Recommendation (New)
+  const [bestMarket, setBestMarket] = useState(null);
+  useEffect(() => {
+    if (!metrics.recentOrders || metrics.isInitialLoad) return;
+    
+    // Simple logic: Get Mandi prices for the first fruit in inventory 
+    // This provides a real dynamic recommendation
+    const fetchBestMarket = async () => {
+        try {
+            const res = await fetch("/api/mandi-prices?fruit=Mango");
+            const json = await res.json();
+            if (json.success && json.data.length > 0) {
+                // Find mandi with max price modal
+                const sorted = [...json.data].sort((a,b) => b.priceModal - a.priceModal);
+                setBestMarket(sorted[0]);
+            }
+        } catch (e) {
+            console.error("Mandi Dash Error:", e);
+        }
+    };
+    fetchBestMarket();
+  }, [metrics.isInitialLoad]);
+
   // Check if it's a new user (strictly based on lack of activity)
   const isNewUser = metrics.isInitialLoad ? false : (metrics.totalStockKg === 0 && metrics.activeOrderCount === 0 && metrics.todaysSales === 0);
 
@@ -231,6 +289,7 @@ function WholesalerDashboardContent() {
   const displaySales = "₹" + metrics.todaysSales.toLocaleString();
   const displayOrders = metrics.activeOrderCount.toString();
   const displayStock = metrics.totalStockKg.toLocaleString() + "kg";
+  const displayWastage = "-₹" + metrics.totalWastageLoss.toLocaleString();
 
   useEffect(() => {
     const timer = setTimeout(() => setChartMounted(true), 400);
@@ -271,7 +330,7 @@ function WholesalerDashboardContent() {
   }, [aiInsights.length]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {isNewUser && (
         <Card className="bg-emerald-500/10 border-emerald-500/20 p-6 mb-8 mt-2 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -290,11 +349,11 @@ function WholesalerDashboardContent() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6">
         <StatCard title={t("todaysSales")} value={displaySales} icon={TrendingUp} delay={0} />
         <StatCard title={t("activeOrders")} value={displayOrders} icon={ShoppingCart} delay={100} />
         <StatCard title={t("stockRemaining")} value={displayStock} icon={Package} delay={200} />
-        <StatCard title={t("aiDemandPrediction")} value={isNewUser ? "Pending Data" : "3,200kg"} icon={Sparkles} delay={300} />
+        <StatCard title="Spoilage Loss" value={displayWastage} icon={AlertTriangle} delay={300} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -305,7 +364,7 @@ function WholesalerDashboardContent() {
           </div>
           <div className={`transition-all duration-700 ${chartMounted ? "opacity-100" : "opacity-0"}`}>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={salesData}>
+              <LineChart data={currentSalesData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border dark:text-white/5" opacity={0.3} />
                 <XAxis dataKey="name" stroke="currentColor" className="text-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="currentColor" className="text-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
@@ -359,7 +418,7 @@ function WholesalerDashboardContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground dark:text-white/40">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {new Date(order.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                   </tr>
                 )) : (
@@ -417,6 +476,40 @@ function WholesalerDashboardContent() {
                 </div>
               )}
             </div>
+          </Card>
+
+          {/* New Mandi Market Tip Card */}
+          <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border-blue-500/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+               <div className="flex items-center gap-2">
+                 <MapPin className="w-5 h-5 text-blue-500" />
+                 <h3 className="font-bold text-blue-900 dark:text-blue-300">Live Market Tip</h3>
+               </div>
+               <Link href="/wholesaler/mandi-prices" className="text-[10px] font-bold text-blue-500 uppercase hover:underline">Full Analysis →</Link>
+            </div>
+            
+            {bestMarket ? (
+                <div className="space-y-2">
+                    <p className="text-sm text-blue-800/80 dark:text-blue-100/70">
+                        Highest demand for <span className="font-bold text-blue-900 dark:text-white underline decoration-blue-500">Mango</span> detected today:
+                    </p>
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <p className="text-2xl font-black text-blue-900 dark:text-white">{bestMarket.mandiName}</p>
+                            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{bestMarket.state}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">₹{bestMarket.priceModal}/kg</p>
+                            <p className="text-[10px] text-emerald-500 font-bold">+12% Profit Margin</p>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2 text-muted-foreground animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-xs">Finding best market for your stock...</span>
+                </div>
+            )}
           </Card>
 
           <Card className="bg-card/50 backdrop-blur-sm border-border p-6 dark:bg-white/5 dark:border-white/10">

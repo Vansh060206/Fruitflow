@@ -1,10 +1,66 @@
 {
-    "rules": {
-        "users": {
-            "$uid": {
-                ".read": "auth != null",
-                ".write": "auth != null && auth.uid === $uid"
-            }
-        }
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      ".indexOn": ["phone", "email", "role", "driverStatus"],
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'wholesaler')"
+      }
+    },
+    "inventory": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "retailer_orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "driver_orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "order_alerts": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "dispatch_alerts": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "negotiation_counts": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "otps": {
+      ".read": "true",
+      ".write": "true"
+    },
+    "wastage": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "retailer_favorites": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "mandi_prices": {
+      ".read": "true",
+      ".write": "true"
+    },
+    "stock_requests": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "notifications": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
+  }
 }

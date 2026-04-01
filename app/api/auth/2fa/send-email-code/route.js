@@ -17,9 +17,9 @@ export async function POST(req) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         console.log(`API 2FA: Generated code ${code} for user ${uid}`);
 
-        // Store in RTDB with expiry (e.g., 5 minutes from now)
-        const userRef = ref(realtimeDb, `users/${uid}/tempVerification`);
-        await update(userRef, {
+        // Store in /otps/${uid} node which has public permissions in database.rules.json
+        const otpRef = ref(realtimeDb, `otps/${uid}`);
+        await update(otpRef, {
             code,
             expiresAt: Date.now() + 5 * 60 * 1000,
             createdAt: serverTimestamp(),

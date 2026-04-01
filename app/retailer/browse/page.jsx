@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { useCart } from "@/lib/cart-context";
 import { ProtectedRoute } from "@/components/protected-route";
-import { Search, Filter, ShoppingCart, Store, Heart } from "lucide-react";
+import { Search, Filter, ShoppingCart, Store, Heart, BellRing, X } from "lucide-react";
 import { ref, onValue, set, remove, get } from "firebase/database";
 import { realtimeDb } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -119,7 +119,9 @@ function RetailerBrowseContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [liveFruits, setLiveFruits] = useState([]);
   const [favorites, setFavorites] = useState({});
-  const { addToCart } = useCart();
+  const [requestingFruit, setRequestingFruit] = useState(null);
+  const [requestQty, setRequestQty] = useState("");
+  const { addMultipleToCart } = useCart();
   const { t } = useLanguage();
   const { userData } = useAuth();
 
@@ -158,24 +160,69 @@ function RetailerBrowseContent() {
       console.error("Favorite Error:", err);
     }
   };
+  const handleRequestStock = async (e) => {
+    e.preventDefault();
+    if (!userData?.uid || !requestingFruit || !requestQty || isNaN(requestQty) || requestQty <= 0) return;
+
+    const reqNum = Number(requestQty);
+    const available = Number(requestingFruit.quantity || 0);
+
+    // If user asks for more than allowed
+    if (reqNum > available) {
+      try {
+        const requestId = Date.now().toString();
+        const requestRef = ref(realtimeDb, `stock_requests/${requestingFruit.wholesalerId}/${requestId}`);
+        await set(requestRef, {
+          retailerId: userData.uid,
+          retailerName: userData.companyName || userData.name || "A Retailer",
+          productId: requestingFruit.id,
+          productName: requestingFruit.name,
+          requestedQuantity: reqNum,
+          status: "pending",
+          createdAt: Date.now()
+        });
+
+        if (available > 0) {
+            addMultipleToCart([{...requestingFruit, quantity: available}]);
+        }
+        
+        toast.info(available > 0 
+          ? `Added ${available}kg to cart. Sent request to Wholesaler for your remaining demand...`
+          : `Sent request to Wholesaler for ${reqNum}kg.`, { duration: 6000 });
+          
+        setRequestingFruit(null);
+        setRequestQty("");
+      } catch (err) {
+        console.error("Failed to request stock:", err);
+        toast.error("Failed to process stock request.");
+      }
+    } else {
+      // Normal Add To Cart
+      addMultipleToCart([{...requestingFruit, quantity: reqNum}]);
+      toast.success(`Successfully added ${reqNum}kg of ${requestingFruit.name} to your cart!`);
+      setRequestingFruit(null);
+      setRequestQty("");
+    }
+  };
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    let unsubscribeInventory = null;
 
-    // Fetch live inventory from all wholesalers
-    const inventoryRef = ref(realtimeDb, 'inventory');
-    const unsubscribe = onValue(inventoryRef, (snapshot) => {
-      setIsLoading(true);
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        let allProducts = [];
+    // First fetch users once to map wholesaler IDs to names securely
+    const usersRef = ref(realtimeDb, 'users');
+    get(usersRef).then((usersSnapshot) => {
+      const usersData = usersSnapshot.exists() ? usersSnapshot.val() : {};
 
-        // Data structure is: /inventory/{wholesalerId}/{productId}: { ...productInfo }
-        // Fetch all users to map names to wholesalers
-        const usersRef = ref(realtimeDb, 'users');
-        onValue(usersRef, (usersSnapshot) => {
-          const usersData = usersSnapshot.exists() ? usersSnapshot.val() : {};
+      // Then subscribe to live inventory
+      const inventoryRef = ref(realtimeDb, 'inventory');
+      unsubscribeInventory = onValue(inventoryRef, (snapshot) => {
+        setIsLoading(true);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          let allProducts = [];
 
           Object.keys(data).forEach(wholesalerId => {
             const wholesalerProducts = data[wholesalerId];
@@ -200,22 +247,27 @@ function RetailerBrowseContent() {
                 image: product.image || "🍎",
                 freshness: currentFreshness,
                 inStock: product.quantity > 0,
+                quantity: product.quantity || 0,
               });
             });
           });
           setLiveFruits(allProducts);
-          setIsLoading(false);
-        }, { onlyOnce: true });
-      } else {
-        setLiveFruits([]);
+        } else {
+          setLiveFruits([]);
+        }
         setIsLoading(false);
-      }
-    }, (error) => {
-      console.error("Error fetching marketplace inventory:", error);
-      setIsLoading(false);
+      }, (error) => {
+        console.error("Error fetching marketplace inventory:", error);
+        setIsLoading(false);
+      });
+    }).catch((err) => {
+       console.error("Failed fetching users map:", err);
+       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeInventory) unsubscribeInventory();
+    };
   }, []);
 
   const getFreshnessColor = (freshness) => {
@@ -249,7 +301,7 @@ function RetailerBrowseContent() {
   }, [liveFruits, searchTerm, minPrice, maxPrice]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
       {/* Search and Filter Bar */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -320,11 +372,11 @@ function RetailerBrowseContent() {
       ) : (
         <>
           {/* Fruits Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {filteredFruits.map((fruit, index) => (
               <Card
                 key={fruit.id}
-                className={`relative bg-card/50 backdrop-blur-sm border border-border p-6 hover:border-purple-500/40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl cursor-default group overflow-hidden dark:bg-white/5 dark:border-white/10 dark:hover:border-purple-500/30 ${mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+                className={`relative bg-card/50 backdrop-blur-sm border border-border p-3 sm:p-6 hover:border-purple-500/40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl cursor-default group overflow-hidden dark:bg-white/5 dark:border-white/10 dark:hover:border-purple-500/30 ${mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
                 style={{ transitionDelay: `${index * 30}ms` }}
               >
                 {/* Favorite Button */}
@@ -378,23 +430,30 @@ function RetailerBrowseContent() {
                   </div>
                 </div>
 
-                {/* Price */}
-                <div className="mb-6 flex items-baseline">
-                  <span className="text-3xl font-black text-purple-600 dark:text-purple-400">₹{fruit.price.toFixed(2)}</span>
-                  <span className="text-muted-foreground text-xs font-medium ml-1 dark:text-white/40">/kg</span>
+                {/* Price and Stock */}
+                <div className="mb-6">
+                  <div className="flex items-baseline mb-2">
+                    <span className="text-3xl font-black text-purple-600 dark:text-purple-400">₹{fruit.price.toFixed(2)}</span>
+                    <span className="text-muted-foreground text-xs font-medium ml-1 dark:text-white/40">/kg</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium dark:text-white/50">
+                    Available: {fruit.quantity} kg
+                  </div>
                 </div>
 
-                {/* Add to Cart Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(fruit);
-                  }}
-                  className="w-full bg-purple-600/10 hover:bg-purple-600 text-purple-700 hover:text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500 dark:hover:text-white"
-                >
-                  <ShoppingCart className="w-5 h-5 transition-transform group-hover:scale-110" />
-                  {t("addToCart")}
-                </button>
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRequestingFruit(fruit);
+                    }}
+                    className="w-full bg-purple-600/10 hover:bg-purple-600 text-purple-700 hover:text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500 dark:hover:text-white"
+                  >
+                    <ShoppingCart className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    {t("addToCart")}
+                  </button>
+                </div>
               </Card>
             ))}
           </div>
@@ -414,6 +473,46 @@ function RetailerBrowseContent() {
             </div>
           )}
         </>
+      )}
+
+      {/* Request Stock Modal */}
+      {requestingFruit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
+          <Card className="w-full max-w-md p-6 bg-card border-border shadow-2xl relative">
+            <button 
+              onClick={() => setRequestingFruit(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-2">Add to Cart</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              You are purchasing <b>{requestingFruit.name}</b> from {requestingFruit.wholesalerName}. They currently have <b>{requestingFruit.quantity} kg</b> available. 
+              <br/><br/>If you request more than what is available, the maximum stock will be added to your cart and the Wholesaler will be instantly notified to restock the remaining!
+            </p>
+            <form onSubmit={handleRequestStock}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Required Quantity (kg)</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={requestQty}
+                  onChange={(e) => setRequestQty(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  placeholder="e.g. 50"
+                />
+              </div>
+              <button 
+                type="submit"
+                className="w-full py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                Confirm Order Quantity
+              </button>
+            </form>
+          </Card>
+        </div>
       )}
     </div>
   );

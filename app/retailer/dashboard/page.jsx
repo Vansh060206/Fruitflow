@@ -4,12 +4,13 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/protected-route";
-import { TrendingDown, Clock, DollarSign, Star, ShoppingBag, Sparkles } from "lucide-react";
+import { TrendingDown, Clock, DollarSign, Star, ShoppingBag, Sparkles, MapPin, Loader2 } from "lucide-react";
 import { ref, onValue } from "firebase/database";
 import { realtimeDb } from "@/lib/firebase";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { useRouter } from "next/navigation";
 
 // Sample recommended fruits data
 const recommendedFruits = [
@@ -53,12 +54,12 @@ function StatCard({ title, value, icon: Icon, delay, suffix = "" }) {
   }, [mounted, targetValue]);
 
   return (
-    <Card className={`bg-card/50 backdrop-blur-sm border-border p-6 transition-all duration-700 dark:bg-white/5 dark:border-purple-500/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-muted-foreground text-sm font-medium dark:text-white/60">{title}</h3>
-        <Icon className="w-5 h-5 text-purple-500" />
+    <Card className={`bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 transition-all duration-700 dark:bg-white/5 dark:border-purple-500/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{title}</h3>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 shrink-0" />
       </div>
-      <p className="text-3xl font-bold text-foreground dark:text-white">
+      <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">
         {value.toString().includes("₹") && "₹"}
         {Math.floor(count).toLocaleString()}
         {suffix}
@@ -74,12 +75,15 @@ function RetailerDashboardContent() {
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [recommendedFruits, setRecommendedFruits] = useState([]);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
+  const [bestMarket, setBestMarket] = useState(null);
+  const router = useRouter();
 
   // Dynamic Metrics State
   const [metrics, setMetrics] = useState({
     activeOrderCount: 0,
     pendingPaymentAmount: 0,
     recentOrders: [],
+    activeOrders: [],
     isInitialLoad: true
   });
 
@@ -90,27 +94,29 @@ function RetailerDashboardContent() {
   // 1. Listen to Retailer Orders for Live Stats
   useEffect(() => {
     if (!userData?.uid) return;
-    const { ref, onValue } = require("firebase/database");
-    const { realtimeDb } = require("@/lib/firebase");
 
     const ordersRef = ref(realtimeDb, `retailer_orders/${userData.uid}`);
     return onValue(ordersRef, (snapshot) => {
       let active = 0;
       let pending = 0;
       let latestOrders = [];
+      let ordersArray = [];
 
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const ordersArray = Object.keys(data).map(key => ({
+        ordersArray = Object.keys(data).map(key => ({
           id: key,
           ...data[key]
         }));
 
         ordersArray.forEach(order => {
-          // Count active orders
-          if (order.status === "pending") {
+          // Count active orders (not yet delivered)
+          if (['pending', 'pending_negotiation', 'accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(order.status)) {
             active++;
-            pending += (order.totalAmount || 0);
+          }
+          // Sum pending payments
+          if ((order.paymentStatus || 'pending') !== "paid") {
+             pending += (order.totalAmount || 0);
           }
         });
 
@@ -122,7 +128,7 @@ function RetailerDashboardContent() {
               if (!itemsMap[item.name]) {
                 itemsMap[item.name] = {
                   ...item,
-                  lastOrder: new Date(order.createdAt).toLocaleDateString()
+                  lastOrder: new Date(order.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                 };
               }
             });
@@ -134,6 +140,7 @@ function RetailerDashboardContent() {
         activeOrderCount: active,
         pendingPaymentAmount: pending,
         recentOrders: latestOrders,
+        activeOrders: ordersArray.filter(o => o.status !== 'delivered').sort((a,b) => b.createdAt - a.createdAt).slice(0, 5),
         isInitialLoad: false
       });
     }, (error) => {
@@ -141,6 +148,26 @@ function RetailerDashboardContent() {
       setMetrics(prev => ({ ...prev, isInitialLoad: false }));
     });
   }, [userData?.uid]);
+
+  // 1.5 Fetch Market Recommendation
+  useEffect(() => {
+    if (metrics.isInitialLoad) return;
+    
+    const fetchBestMarket = async () => {
+        try {
+            const res = await fetch("/api/mandi-prices?fruit=Apple");
+            const json = await res.json();
+            if (json.success && json.data.length > 0) {
+                // Find mandi with min price modal for procurement
+                const sorted = [...json.data].sort((a,b) => a.priceModal - b.priceModal);
+                setBestMarket(sorted[0]);
+            }
+        } catch (e) {
+            console.error("Mandi Dash Error:", e);
+        }
+    };
+    fetchBestMarket();
+  }, [metrics.isInitialLoad]);
 
   // Check if it's a new user (strictly based on lack of activity)
   const isNewUser = metrics.isInitialLoad ? false : (metrics.activeOrderCount === 0 && metrics.pendingPaymentAmount === 0);
@@ -227,7 +254,7 @@ function RetailerDashboardContent() {
   }, [aiInsights.length]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
       {isNewUser && (
         <Card className="bg-purple-500/10 border-purple-500/20 p-6 mb-8 mt-2 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -247,56 +274,166 @@ function RetailerDashboardContent() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-6">
         <StatCard title={t("todaysBestPrices")} value="24" icon={TrendingDown} delay={0} suffix={" " + t("items")} />
         <StatCard title={t("activeOrders")} value={displayActiveOrders} icon={Clock} delay={100} />
         <StatCard title={t("pendingPayments")} value={displayPendingPayments} icon={DollarSign} delay={200} />
       </div>
 
-      {/* Smart Live Predictions */}
-      <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-100 p-6 dark:from-purple-900/20 dark:to-indigo-900/20 dark:border-purple-500/10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className={`w-5 h-5 text-purple-600 dark:text-purple-500 ${isAiLoading ? 'animate-pulse' : ''}`} />
-            <h3 className="text-lg font-semibold text-purple-900 dark:text-white">Smart Live Predictions</h3>
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Smart Live Predictions */}
+        <Card className="lg:col-span-2 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-100 p-6 dark:from-purple-900/20 dark:to-indigo-900/20 dark:border-purple-500/10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-5 h-5 text-purple-600 dark:text-purple-500 ${isAiLoading ? 'animate-pulse' : ''}`} />
+              <h3 className="text-lg font-semibold text-purple-900 dark:text-white">Smart Live Predictions</h3>
+            </div>
+            {isAiLoading && <span className="text-xs text-purple-500 font-medium animate-pulse">Analyzing regional data...</span>}
           </div>
-          {isAiLoading && <span className="text-xs text-purple-500 font-medium animate-pulse">Analyzing regional data...</span>}
-        </div>
 
-        <div className="space-y-3 min-h-[140px] flex items-center">
-          {isAiLoading ? (
-            <div className="flex flex-col gap-3 w-full">
-              <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
-              <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
-              <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
+          <div className="space-y-3 min-h-[140px] flex items-center">
+            {isAiLoading ? (
+              <div className="flex flex-col gap-3 w-full">
+                <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
+                <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
+                <div className="h-[46px] bg-white/30 dark:bg-white/5 rounded-lg border border-purple-100 dark:border-white/5 animate-pulse" />
+              </div>
+            ) : aiInsights.length > 0 ? (
+              <div
+                key={currentInsightIndex}
+                className="bg-white/50 rounded-xl p-5 border border-purple-200 dark:bg-white/5 dark:border-white/10 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700 w-full"
+              >
+                <div className="flex items-center gap-2 mb-3 text-purple-700 dark:text-purple-400">
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Insight {currentInsightIndex + 1} of {aiInsights.length}</span>
+                </div>
+                <p className="text-purple-900 dark:text-white/90 text-[15px] leading-relaxed font-semibold">
+                  {aiInsights[currentInsightIndex]}
+                </p>
+                <div className="flex gap-1.5 mt-5">
+                  {aiInsights.map((_, idx) => (
+                    <div key={idx} className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${idx === currentInsightIndex ? 'bg-purple-500' : 'bg-purple-200 dark:bg-white/10'}`} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white/50 rounded-lg p-6 border border-purple-100 text-center dark:bg-white/5 dark:border-white/5 w-full">
+                <p className="text-purple-800/80 text-sm dark:text-white/80">
+                  Browse the marketplace to unlock AI predictions tailored to your sourcing needs.
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Live Market Tip Card (Procurement focus) */}
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20 p-6 flex flex-col justify-between">
+            <div>
+               <div className="flex items-center justify-between mb-4">
+                 <div className="flex items-center gap-2">
+                   <MapPin className="w-5 h-5 text-indigo-500" />
+                   <h3 className="font-bold text-indigo-900 dark:text-indigo-300">Live Procurement Tip</h3>
+                 </div>
+                 <Link href="/retailer/mandi-prices" className="text-[10px] font-bold text-indigo-500 uppercase hover:underline">Market Analysis →</Link>
+               </div>
+               
+               {bestMarket ? (
+                   <div className="space-y-4">
+                       <p className="text-sm text-indigo-800/80 dark:text-indigo-100/70">
+                           Best entry price for <span className="font-bold text-indigo-900 dark:text-white underline decoration-indigo-500">Apple</span> detected in:
+                       </p>
+                       <div className="flex items-end justify-between">
+                           <div>
+                               <p className="text-xl font-black text-indigo-900 dark:text-white">{bestMarket.mandiName}</p>
+                               <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">{bestMarket.state}</p>
+                           </div>
+                           <div className="text-right">
+                               <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">₹{bestMarket.priceModal}/kg</p>
+                               <p className="text-[10px] text-emerald-500 font-bold">LOWER THAN AVG</p>
+                           </div>
+                       </div>
+                   </div>
+               ) : (
+                   <div className="flex items-center gap-2 text-muted-foreground animate-pulse py-8">
+                       <Loader2 className="w-4 h-4 animate-spin" />
+                       <span className="text-xs">Finding best sourcing rates...</span>
+                   </div>
+               )}
             </div>
-          ) : aiInsights.length > 0 ? (
-            <div
-              key={currentInsightIndex}
-              className="bg-white/50 rounded-xl p-5 border border-purple-200 dark:bg-white/5 dark:border-white/10 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700 w-full"
+            
+            <button 
+                onClick={() => router.push('/retailer/browse')}
+                className="mt-6 w-full py-2 bg-indigo-500 text-white rounded-lg text-xs font-bold hover:bg-indigo-600 transition-colors"
             >
-              <div className="flex items-center gap-2 mb-3 text-purple-700 dark:text-purple-400">
-                <Sparkles className="w-4 h-4 animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider">Insight {currentInsightIndex + 1} of {aiInsights.length}</span>
-              </div>
-              <p className="text-purple-900 dark:text-white/90 text-[15px] leading-relaxed font-semibold">
-                {aiInsights[currentInsightIndex]}
-              </p>
-              <div className="flex gap-1.5 mt-5">
-                {aiInsights.map((_, idx) => (
-                  <div key={idx} className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${idx === currentInsightIndex ? 'bg-purple-500' : 'bg-purple-200 dark:bg-white/10'}`} />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/50 rounded-lg p-6 border border-purple-100 text-center dark:bg-white/5 dark:border-white/5 w-full">
-              <p className="text-purple-800/80 text-sm dark:text-white/80">
-                Browse the marketplace to unlock AI predictions tailored to your sourcing needs.
-              </p>
-            </div>
-          )}
+                SOURCE FROM WHOLESALERS
+            </button>
+        </Card>
+      </div>
+      {/* Live Order Progress */}
+      {metrics.activeOrders.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                 <Clock className="w-5 h-5 text-purple-500 animate-pulse" /> Active Order Progress
+              </h3>
+              <Link href="/retailer/orders" className="text-[10px] font-black text-purple-500 uppercase hover:underline tracking-[0.2em]">Full History →</Link>
+           </div>
+           <div className="grid gap-4">
+              {metrics.activeOrders.map((order) => (
+                <Card key={order.id} className="bg-card/50 backdrop-blur-md border-border p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 dark:bg-white/5 dark:border-white/10 hover:border-purple-500/40 transition-all group overflow-hidden relative" onClick={() => router.push('/retailer/orders')}>
+                   <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 opacity-50 group-hover:opacity-100 transition-opacity" />
+                   
+                   <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center dark:bg-purple-900/20 border border-purple-500/20">
+                         <ShoppingBag className="w-7 h-7 text-purple-500" />
+                      </div>
+                      <div>
+                         <h4 className="font-black text-foreground dark:text-white leading-none tracking-tight">#{order.id.slice(-8)}</h4>
+                         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                           <span className="px-2 py-0.5 bg-zinc-100 dark:bg-white/5 rounded text-purple-600 dark:text-purple-400">₹{order.totalAmount?.toFixed(2)}</span>
+                           <span>•</span>
+                           <span>{order.items?.length || 0} ITEMS</span>
+                         </p>
+                      </div>
+                   </div>
+
+                   {/* Progress Visualizer */}
+                   <div className="flex-1 max-w-md hidden md:block px-8 relative">
+                      <div className="flex justify-between mb-2.5 px-0.5">
+                         <span className="text-[9px] font-black uppercase text-purple-500 tracking-tighter">Processed</span>
+                         <span className={`text-[9px] font-black uppercase tracking-tighter ${['accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(order.status) ? 'text-purple-500' : 'text-muted-foreground opacity-50'}`}>Logistics</span>
+                         <span className={`text-[9px] font-black uppercase tracking-tighter ${['picked_up', 'in_transit'].includes(order.status) ? 'text-purple-500' : 'text-muted-foreground opacity-50'}`}>On Road</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden dark:bg-white/5 border border-white/5">
+                         <div 
+                          className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-1000 shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
+                          style={{ 
+                            width: order.status === 'delivered' ? '100%' : 
+                                   ['picked_up', 'in_transit'].includes(order.status) ? '80%' :
+                                   ['accepted', 'accepted_negotiation'].includes(order.status) ? '45%' : '15%'
+                          }}
+                         />
+                      </div>
+                   </div>
+
+                   <div className="flex items-center gap-5">
+                      <div className="text-right">
+                         <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${order.paymentStatus === 'paid' ? 'text-emerald-500' : 'text-orange-500 animate-pulse'}`}>
+                            {order.paymentStatus === 'paid' ? '● PAID' : '● PAYMENT PENDING'}
+                         </p>
+                         <p className="text-sm font-black text-foreground dark:text-white uppercase italic tracking-tighter">
+                            {order.status.replace('_', ' ')}
+                         </p>
+                      </div>
+                      <button className="w-10 h-10 flex items-center justify-center bg-purple-500/10 rounded-xl hover:bg-purple-500 hover:text-white transition-all text-purple-500">
+                         <Clock className="w-5 h-5" />
+                      </button>
+                   </div>
+                </Card>
+              ))}
+           </div>
         </div>
-      </Card>
+      )}
 
       {/* Recommended Fruits */}
       <div>

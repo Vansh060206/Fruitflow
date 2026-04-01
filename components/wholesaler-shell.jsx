@@ -18,7 +18,8 @@ import {
     X,
     User,
     AlertCircle,
-    AlertTriangle
+    AlertTriangle,
+    Building2
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle"; // Added import
 
@@ -27,13 +28,21 @@ export function WholesalerShell({ children }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const canvasRef = useRef(null);
     const router = useRouter();
-    const { logout, userData, user } = useAuth();
+    const { logout, userData, user, isEmailVerified, isAuthenticated, isLoading } = useAuth();
     const pathname = usePathname();
     const { language, switchLanguage, t } = useLanguage();
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push("/");
+        }
+    }, [isLoading, isAuthenticated, router]);
 
     const userInitials = userData?.name
         ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         : 'WS';
+
+    if (isLoading || !isAuthenticated) return null;
 
 
     const handleLogout = () => {
@@ -47,10 +56,12 @@ export function WholesalerShell({ children }) {
 
     const navLinks = [
         { href: "/wholesaler/dashboard", icon: LayoutDashboard, label: t("dashboard") },
+        { href: "/wholesaler/profile/business", icon: Building2, label: "Business Profile" },
         { href: "/wholesaler/inventory", icon: Package, label: t("inventory") },
         { href: "/wholesaler/orders", icon: Truck, label: t("orders") },
         { href: "/wholesaler/analytics", icon: BarChart3, label: t("analytics") },
         { href: "/wholesaler/payments", icon: CreditCard, label: t("payments") },
+        { href: "/wholesaler/mandi-prices", icon: BarChart3, label: "Market Prices" },
         { href: "/wholesaler/settings", icon: Settings, label: t("settings") },
     ];
 
@@ -59,8 +70,15 @@ export function WholesalerShell({ children }) {
             <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
             <div className="relative z-10 flex">
+                {/* Mobile sidebar overlay */}
+                {sidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
                 {/* Sidebar */}
-                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
+                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-50 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-8">
                             <h1 className="text-2xl font-bold text-foreground dark:text-white">FruitFlow</h1>
@@ -97,23 +115,25 @@ export function WholesalerShell({ children }) {
                     </div>
                 </aside>
 
-                <main className="flex-1 min-h-screen">
+                <main className="flex-1 min-h-screen pb-20 lg:pb-0">
                     {/* Header */}
-                    <header className="bg-card/50 backdrop-blur-xl border-b border-border p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
+                    <header className="bg-card/50 backdrop-blur-xl border-b border-border px-4 py-3 lg:p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground">
                                     <Menu className="w-6 h-6" />
                                 </button>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-foreground transition-all duration-300 dark:text-white">
+                                    <h2 className="text-lg lg:text-2xl font-bold text-foreground transition-all duration-300 dark:text-white truncate max-w-[150px] sm:max-w-none">
                                         {pathname === "/wholesaler/dashboard" && t("dashboard")}
+                                        {pathname === "/wholesaler/profile/business" && "Business Profile"}
                                         {pathname === "/wholesaler/inventory" && t("inventory")}
                                         {pathname === "/wholesaler/orders" && t("orders")}
                                         {pathname === "/wholesaler/analytics" && t("analytics")}
                                         {pathname === "/wholesaler/payments" && t("payments")}
                                         {pathname === "/wholesaler/settings" && t("settings")}
                                         {pathname === "/wholesaler/profile" && t("profile")}
+                                        {pathname === "/wholesaler/mandi-prices" && "Market Mandi Prices"}
                                     </h2>
                                     <p className="text-muted-foreground text-sm hidden sm:block transition-all duration-300 dark:text-white/60">
                                         {t("welcomeBack")}, {userData?.name || t("partner")}
@@ -139,6 +159,15 @@ export function WholesalerShell({ children }) {
                                         HI
                                     </button>
                                 </div>
+
+                                {/* Mobile Logout Fast-Action */}
+                                <button
+                                    onClick={handleLogout}
+                                    className="lg:hidden w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition-all active:scale-90"
+                                    title="Sign Out"
+                                >
+                                    <LogOut className="w-5 h-5 text-red-500" />
+                                </button>
 
                                 {/* Profile Dropdown Trigger */}
                                 <button
@@ -212,7 +241,7 @@ export function WholesalerShell({ children }) {
 
                     {/* Security Banners */}
                     <div className="px-6 pt-6 -mb-2 space-y-3">
-                        {userData && !userData.phone && (
+                        {userData && (!userData.phone || !userData.gstNumber) && (
                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top duration-500">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -220,13 +249,13 @@ export function WholesalerShell({ children }) {
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-foreground dark:text-white">Complete your business profile</p>
-                                        <p className="text-xs text-muted-foreground dark:text-white/60">Phone number and company name are required for trading.</p>
+                                        <p className="text-xs text-muted-foreground dark:text-white/60">GST number and phone are required for full trading access.</p>
                                     </div>
                                 </div>
-                                <Link href="/wholesaler/settings" className="text-xs font-bold text-amber-500 hover:underline">Complete Now</Link>
+                                <Link href="/wholesaler/profile/business" className="text-xs font-bold text-amber-500 hover:underline">Complete Now</Link>
                             </div>
                         )}
-                        {user && !user.emailVerified && (
+                        {user && !isEmailVerified && (
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top duration-700">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -234,16 +263,12 @@ export function WholesalerShell({ children }) {
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-foreground dark:text-white">Email not verified</p>
-                                        <p className="text-xs text-muted-foreground dark:text-white/60">Please check your inbox to verify your account.</p>
+                                        <p className="text-xs text-muted-foreground dark:text-white/60">Please verify your email to secure your account.</p>
                                     </div>
                                 </div>
                                 <button className="text-xs font-bold text-blue-500 hover:underline" onClick={() => {
-                                    import("firebase/auth").then(({ sendEmailVerification }) => {
-                                        if (user) sendEmailVerification(user).then(() => {
-                                            toast.success("Verification link resent!");
-                                        });
-                                    });
-                                }}>Resend Link</button>
+                                    router.push("/verify-account");
+                                }}>Verify Email</button>
                             </div>
                         )}
                     </div>
@@ -254,13 +279,35 @@ export function WholesalerShell({ children }) {
                 </main>
             </div>
 
-            {/* Mobile sidebar overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+            {/* Mobile Bottom Nav */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border dark:bg-zinc-950/95 dark:border-white/10">
+                <div className="grid grid-cols-5 h-16">
+                    {[
+                        { href: "/wholesaler/dashboard", icon: LayoutDashboard, label: "Home" },
+                        { href: "/wholesaler/inventory", icon: Package, label: "Stock" },
+                        { href: "/wholesaler/orders", icon: Truck, label: "Orders" },
+                        { href: "/wholesaler/analytics", icon: BarChart3, label: "Stats" },
+                        { href: "/wholesaler/settings", icon: Settings, label: "More" },
+                    ].map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex flex-col items-center justify-center gap-1 relative transition-all active:scale-90 ${isActive ? "text-emerald-500" : "text-muted-foreground dark:text-white/40"}`}
+                                onClick={() => setSidebarOpen(false)}
+                            >
+                                {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-emerald-500 rounded-full" />}
+                                <div className={`relative p-1.5 rounded-xl transition-all ${isActive ? "bg-emerald-500/15" : ""}`}>
+                                    <Icon className="w-5 h-5" />
+                                </div>
+                                <span className={`text-[9px] font-black uppercase tracking-wider ${isActive ? "text-emerald-500" : ""}`}>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </nav>
         </div>
     );
 }

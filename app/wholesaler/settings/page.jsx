@@ -2,15 +2,17 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/protected-route";
-import { User, Mail, Store, Globe, Bell, Lock } from "lucide-react";
+import { User, Mail, Store, Globe, Bell, Lock, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { TwoFactorSetup } from "@/components/settings/TwoFactorSetup";
 import { PasswordSettings } from "@/components/settings/PasswordSettings";
+import { useLanguage } from "@/lib/language-context";
 
 function SettingsPageContent() {
+  const { language, switchLanguage } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const { userData } = useAuth();
+  const { userData, logout } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -80,18 +82,17 @@ function SettingsPageContent() {
             </label>
             <div className="relative">
               <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground dark:text-white/40" />
-              <select id="language" className="w-full bg-muted border border-border rounded-lg pl-12 pr-4 py-3 text-foreground appearance-none cursor-pointer focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all dark:bg-white/5 dark:border-white/10 dark:text-white">
+              <select
+                id="language"
+                value={language}
+                onChange={(e) => switchLanguage(e.target.value)}
+                className="w-full bg-muted border border-border rounded-lg pl-12 pr-4 py-3 text-foreground appearance-none cursor-pointer focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all dark:bg-white/5 dark:border-white/10 dark:text-white"
+              >
                 <option value="en" className="bg-background text-foreground">
                   English
                 </option>
-                <option value="es" className="bg-background text-foreground">
-                  Spanish
-                </option>
-                <option value="fr" className="bg-background text-foreground">
-                  French
-                </option>
-                <option value="de" className="bg-background text-foreground">
-                  German
+                <option value="hi" className="bg-background text-foreground">
+                  हिंदी (Hindi)
                 </option>
               </select>
             </div>
@@ -120,6 +121,28 @@ function SettingsPageContent() {
       {/* Security */}
       <PasswordSettings roleColor="emerald" />
       <TwoFactorSetup roleColor="emerald" />
+
+      {/* Danger Zone / Logout */}
+      <Card className={`bg-red-500/5 border-red-500/20 p-6 transition-all duration-700 dark:bg-red-950/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`} style={{ transitionDelay: "300ms" }}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-red-600 dark:text-red-400">Account Session</h3>
+            <p className="text-sm text-muted-foreground dark:text-white/60">Sign out of your account on this device.</p>
+          </div>
+          <button 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to logout?")) {
+                logout();
+                window.location.href = "/";
+              }
+            }}
+            className="w-full sm:w-auto px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs tracking-widest rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Log Out Now
+          </button>
+        </div>
+      </Card>
     </div>
   );
 }

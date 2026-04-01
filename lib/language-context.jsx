@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 const translations = {
     en: {
@@ -398,21 +398,23 @@ export function LanguageProvider({ children }) {
         setMounted(true);
     }, []);
 
-    const switchLanguage = (lang) => {
+    const switchLanguage = useCallback((lang) => {
         setLanguage(lang);
         localStorage.setItem('language', lang);
-    };
+    }, []);
 
-    const t = (key) => {
-        return translations[language][key] || key;
-    };
+    const t = useCallback((key) => {
+        return translations[language]?.[key] || key;
+    }, [language]);
+
+    const value = useMemo(() => ({ language, switchLanguage, t }), [language, switchLanguage, t]);
 
     if (!mounted) {
         return null; // or a loading spinner
     }
 
     return (
-        <LanguageContext.Provider value={{ language, switchLanguage, t }}>
+        <LanguageContext.Provider value={value}>
             {children}
         </LanguageContext.Provider>
     );

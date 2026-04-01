@@ -7,6 +7,8 @@ import { useCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
 import { toast } from "sonner";
 import { EmailVerificationWall } from "@/components/EmailVerificationWall";
+import { ref, onChildAdded, remove } from "firebase/database";
+import { realtimeDb } from "@/lib/firebase";
 
 // ... (keep structure)
 
@@ -23,7 +25,8 @@ import {
     X,
     User,
     AlertCircle,
-    AlertTriangle
+    AlertTriangle,
+    BarChart3
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle"; // Added import
 
@@ -32,14 +35,45 @@ export function RetailerShell({ children }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const canvasRef = useRef(null);
     const router = useRouter();
-    const { logout, userData, user } = useAuth();
+    const { logout, userData, user, isEmailVerified, isAuthenticated, isLoading } = useAuth();
     const pathname = usePathname();
     const { cartCount } = useCart();
     const { language, switchLanguage, t } = useLanguage();
 
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push("/");
+        }
+    }, [isLoading, isAuthenticated, router]);
+
+    // Listen for real-time notifications (e.g., Stock requests fulfilled)
+    useEffect(() => {
+        if (!userData?.uid) return;
+        
+        const notificationsRef = ref(realtimeDb, `notifications/${userData.uid}`);
+        const unsubscribe = onChildAdded(notificationsRef, (snapshot) => {
+            const notification = snapshot.val();
+            if (notification && !notification.read) {
+                // Show rich toast
+                toast.success(notification.title, {
+                    description: notification.message,
+                    duration: 10000, // 10 seconds
+                    position: "top-right",
+                });
+                
+                // Remove it so it doesn't trigger again on reload
+                remove(snapshot.ref).catch(err => console.error("Failed to clear notification:", err));
+            }
+        });
+
+        return () => unsubscribe();
+    }, [userData?.uid]);
+
     const userInitials = userData?.name
         ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         : 'RT';
+
+    if (isLoading || !isAuthenticated) return null;
 
 
     const handleLogout = () => {
@@ -54,6 +88,7 @@ export function RetailerShell({ children }) {
     const navLinks = [
         { href: "/retailer/dashboard", icon: LayoutDashboard, label: t("dashboard") },
         { href: "/retailer/browse", icon: ShoppingBag, label: t("browseProducts") },
+        { href: "/retailer/mandi-prices", icon: BarChart3, label: "Market Mandi Prices" },
         { href: "/retailer/cart", icon: ShoppingCart, label: t("cart") },
         { href: "/retailer/orders", icon: Package, label: t("myOrders") },
         { href: "/retailer/favorites", icon: Heart, label: t("favorites") },
@@ -66,8 +101,15 @@ export function RetailerShell({ children }) {
             <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
             <div className="relative z-10 flex">
+                {/* Mobile sidebar overlay */}
+                {sidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
                 {/* Sidebar */}
-                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
+                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-50 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-8">
                             <h1 className="text-2xl font-bold text-foreground dark:text-white">FruitFlow</h1>
@@ -104,16 +146,16 @@ export function RetailerShell({ children }) {
                     </div>
                 </aside>
 
-                <main className="flex-1 min-h-screen">
+                <main className="flex-1 min-h-screen pb-20 lg:pb-0">
                     {/* Header */}
-                    <header className="bg-card/50 backdrop-blur-xl border-b border-border p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
+                    <header className="bg-card/50 backdrop-blur-xl border-b border-border px-4 py-3 lg:p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground">
                                     <Menu className="w-6 h-6" />
                                 </button>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-foreground transition-colors duration-300 dark:text-white">
+                                    <h2 className="text-lg lg:text-2xl font-bold text-foreground transition-colors duration-300 dark:text-white truncate max-w-[150px] sm:max-w-none">
                                         {pathname === "/retailer/dashboard" && t("dashboard")}
                                         {pathname === "/retailer/browse" && t("browseProducts")}
                                         {pathname === "/retailer/cart" && t("cart")}
@@ -122,6 +164,7 @@ export function RetailerShell({ children }) {
                                         {pathname === "/retailer/payments" && t("payments")}
                                         {pathname === "/retailer/settings" && t("accountSettings")}
                                         {pathname === "/retailer/profile" && t("profile")}
+                                        {pathname === "/retailer/mandi-prices" && "Market Mandi Prices"}
                                     </h2>
                                     <p className="text-muted-foreground text-sm hidden sm:block transition-colors duration-300 dark:text-white/60">
                                         {t("welcomeBack")}, {userData?.name || t("shopper")}
@@ -156,6 +199,15 @@ export function RetailerShell({ children }) {
                                         HI
                                     </button>
                                 </div>
+
+                                {/* Mobile Logout Fast-Action */}
+                                <button
+                                    onClick={handleLogout}
+                                    className="lg:hidden w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition-all active:scale-90"
+                                    title="Sign Out"
+                                >
+                                    <LogOut className="w-5 h-5 text-red-500" />
+                                </button>
 
                                 {/* Profile Dropdown Trigger */}
                                 <button
@@ -243,7 +295,7 @@ export function RetailerShell({ children }) {
                                 <Link href="/retailer/settings" className="text-xs font-bold text-amber-500 hover:underline">Complete Now</Link>
                             </div>
                         )}
-                        {user && !user.emailVerified && (
+                        {user && !isEmailVerified && (
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top duration-700">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -251,16 +303,12 @@ export function RetailerShell({ children }) {
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-foreground dark:text-white">Email not verified</p>
-                                        <p className="text-xs text-muted-foreground dark:text-white/60">Please check your inbox to verify your account.</p>
+                                        <p className="text-xs text-muted-foreground dark:text-white/60">Please verify your email to secure your account.</p>
                                     </div>
                                 </div>
                                 <button className="text-xs font-bold text-blue-500 hover:underline" onClick={() => {
-                                    import("firebase/auth").then(({ sendEmailVerification }) => {
-                                        if (user) sendEmailVerification(user).then(() => {
-                                            toast.success("Verification link resent!");
-                                        });
-                                    });
-                                }}>Resend Link</button>
+                                    router.push("/verify-account");
+                                }}>Verify Email</button>
                             </div>
                         )}
                     </div>
@@ -271,13 +319,41 @@ export function RetailerShell({ children }) {
                 </main>
             </div>
 
-            {/* Mobile sidebar overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+            {/* =============================================
+                MOBILE BOTTOM NAVIGATION BAR
+                (visible only on < lg screens)
+            ============================================= */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border dark:bg-zinc-950/95 dark:border-white/10 safe-bottom">
+                <div className="grid grid-cols-5 h-16">
+                    {[
+                        { href: "/retailer/dashboard", icon: LayoutDashboard, label: "Home" },
+                        { href: "/retailer/browse", icon: ShoppingBag, label: "Browse" },
+                        { href: "/retailer/cart", icon: ShoppingCart, label: "Cart", badge: cartCount },
+                        { href: "/retailer/orders", icon: Package, label: "Orders" },
+                        { href: "/retailer/settings", icon: Settings, label: "More" },
+                    ].map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex flex-col items-center justify-center gap-1 relative transition-all active:scale-90 ${isActive ? "text-purple-500" : "text-muted-foreground dark:text-white/40"}`}
+                                onClick={() => setSidebarOpen(false)}
+                            >
+                                {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-purple-500 rounded-full" />}
+                                <div className={`relative p-1.5 rounded-xl transition-all ${isActive ? "bg-purple-500/15" : ""}`}>
+                                    <Icon className="w-5 h-5" />
+                                    {item.badge > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[9px] rounded-full flex items-center justify-center font-black">{item.badge}</span>
+                                    )}
+                                </div>
+                                <span className={`text-[9px] font-black uppercase tracking-wider ${isActive ? "text-purple-500" : ""}`}>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </nav>
         </div>
     );
 }

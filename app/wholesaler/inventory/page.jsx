@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/protected-route";
-import { Search, Package, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Package, Plus, Pencil, Trash2, AlertTriangle, X, DollarSign } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
-import { ref, onValue, set, remove, update } from "firebase/database";
+import { ref, onValue, set, remove, update, get } from "firebase/database";
 import { realtimeDb } from "@/lib/firebase";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
@@ -110,6 +110,7 @@ function InventoryPageContent() {
   const [filterType, setFilterType] = useState("name"); // "name", "quantity", "price"
   const [mounted, setMounted] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Add Modal State
@@ -117,6 +118,12 @@ function InventoryPageContent() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dump/Spoil Modal State
+  const [isDumpModalOpen, setIsDumpModalOpen] = useState(false);
+  const [dumpItem, setDumpItem] = useState(null);
+  const [dumpQuantity, setDumpQuantity] = useState("");
+
   const [newItem, setNewItem] = useState({
     name: "",
     image: "🍎",
@@ -178,8 +185,53 @@ function InventoryPageContent() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // Also listen to incoming Retailer stock requests
+    const requestsRef = ref(realtimeDb, `stock_requests/${userData.uid}`);
+    const unsubscribeRequests = onValue(requestsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const reqs = snapshot.val();
+        const pending = Object.entries(reqs).map(([id, r]) => ({id, ...r})).filter(r => r.status === "pending").sort((a,b) => b.createdAt - a.createdAt);
+        setPendingRequests(pending);
+      } else {
+        setPendingRequests([]);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeRequests();
+    };
   }, [userData]);
+
+  const handleDenyRequest = async (req) => {
+    if (!userData?.uid) return;
+    // Optimistically remove it instantly from the screen
+    setPendingRequests(prev => prev.filter(r => r.id !== req.id));
+    try {
+      // Mark as denied
+      const requestRef = ref(realtimeDb, `stock_requests/${userData.uid}/${req.id}`);
+      await update(requestRef, {
+        status: "denied",
+        deniedAt: Date.now()
+      });
+      
+      // Optionally notify the retailer
+      const notifId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+      const notificationRef = ref(realtimeDb, `notifications/${req.retailerId}/${notifId}`);
+      await set(notificationRef, {
+        title: "Stock Request Declined",
+        message: `${userData.companyName || userData.name || "A Wholesaler"} cannot accommodate your request for ${req.requestedQuantity}kg of ${req.productName} right now.`,
+        type: "stock_denied",
+        read: false,
+        createdAt: Date.now()
+      });
+      
+      toast.info(`Request for ${req.productName} from ${req.retailerName} was dismissed.`);
+    } catch (err) {
+      console.error("Failed to deny request:", err);
+      toast.error("Failed to dismiss request.");
+    }
+  };
 
   const openAddModal = () => {
     setIsEditMode(false);
@@ -216,38 +268,141 @@ function InventoryPageContent() {
     }
   };
 
+  const openDumpModal = (item) => {
+    setDumpItem(item);
+    setDumpQuantity("");
+    setIsDumpModalOpen(true);
+  };
+
+  const handleDumpSubmit = async (e) => {
+    e.preventDefault();
+    if (!userData?.uid || !dumpItem) return;
+
+    const dumpQty = parseInt(dumpQuantity);
+    if (!dumpQty || dumpQty <= 0) {
+      toast.error("Please enter a valid amount to dump");
+      return;
+    }
+
+    if (dumpQty > dumpItem.quantity) {
+      toast.error(`Cannot dump more than current stock (${dumpItem.quantity} kg)`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Reduce inventory
+      const newQuantity = dumpItem.quantity - dumpQty;
+      const itemRef = ref(realtimeDb, `inventory/${userData.uid}/${dumpItem.id}`);
+      await update(itemRef, {
+        quantity: newQuantity,
+        status: newQuantity < 20 ? "low-stock" : "in-stock",
+        updatedAt: Date.now()
+      });
+
+      // 2. Log wastage to analytics
+      const wastageRef = ref(realtimeDb, `wastage/${userData.uid}/${nanoid()}`);
+      await set(wastageRef, {
+        itemId: dumpItem.id,
+        itemName: dumpItem.name,
+        quantity: dumpQty,
+        financialLoss: dumpQty * (dumpItem.pricePerKg || 0),
+        date: Date.now()
+      });
+
+      toast.success(`Logged ${dumpQty}kg of spoiled ${dumpItem.name}.`);
+      setIsDumpModalOpen(false);
+    } catch (error) {
+      console.error("Error logging dump:", error);
+      toast.error("Failed to log spoilage.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!userData?.uid) return;
 
     setIsSubmitting(true);
     try {
-      const itemId = isEditMode && editingItemId ? editingItemId : nanoid();
+      let itemId = isEditMode && editingItemId ? editingItemId : null;
+      let isUpdatingExisting = false;
+      let existingItem = null;
+
+      if (!isEditMode) {
+        existingItem = inventoryData.find(item => item.name.toLowerCase().trim() === newItem.name.toLowerCase().trim());
+        if (existingItem) {
+          itemId = existingItem.id;
+          isUpdatingExisting = true;
+        }
+      }
+
+      if (!itemId) {
+        itemId = nanoid();
+      }
+
       const itemRef = ref(realtimeDb, `inventory/${userData.uid}/${itemId}`);
 
-      const quantityNum = parseInt(newItem.quantity) || 0;
+      const inputQuantity = parseInt(newItem.quantity) || 0;
+      const inputMaxQuantity = parseInt(newItem.maxQuantity) || inputQuantity;
+      const totalQuantity = isUpdatingExisting ? ((parseInt(existingItem.quantity) || 0) + inputQuantity) : inputQuantity;
+      const totalMaxQuantity = isUpdatingExisting ? ((parseInt(existingItem.maxQuantity) || 0) + inputMaxQuantity) : inputMaxQuantity;
 
       const payload = {
-        name: newItem.name,
+        name: isUpdatingExisting ? existingItem.name : (newItem.name ? newItem.name.trim() : "Unnamed Item"),
         image: newItem.image,
-        quantity: quantityNum,
-        maxQuantity: parseInt(newItem.maxQuantity) || quantityNum,
-        pricePerKg: parseFloat(newItem.pricePerKg) || 0,
-        freshness: parseInt(newItem.freshness) || 100,
-        status: quantityNum < 20 ? "low-stock" : "in-stock",
+        quantity: totalQuantity,
+        maxQuantity: totalMaxQuantity,
+        pricePerKg: parseFloat(newItem.pricePerKg) || (isUpdatingExisting ? existingItem.pricePerKg : 0),
+        freshness: parseInt(newItem.freshness) || (isUpdatingExisting ? existingItem.freshness : 100),
+        status: totalQuantity < 20 ? "low-stock" : "in-stock",
         updatedAt: Date.now()
       };
 
-      if (!isEditMode) {
+      if (!isEditMode && !isUpdatingExisting) {
         payload.createdAt = Date.now();
       }
 
       await update(itemRef, payload);
-      toast.success(isEditMode ? "Item updated successfully!" : "Item added to inventory successfully!");
+      // Check for fulfilled stock requests
+      try {
+        const requestsRef = ref(realtimeDb, `stock_requests/${userData.uid}`);
+        const requestsSnap = await get(requestsRef);
+        if (requestsSnap.exists()) {
+          const reqs = requestsSnap.val();
+          for (const [reqId, reqData] of Object.entries(reqs)) {
+            // If pending request matches this product and we now have enough stock
+            if (reqData.productId === itemId && reqData.status === "pending" && totalQuantity >= reqData.requestedQuantity) {
+              
+              const requestToUpdateRef = ref(realtimeDb, `stock_requests/${userData.uid}/${reqId}`);
+              await update(requestToUpdateRef, {
+                status: "fulfilled",
+                fulfilledAt: Date.now()
+              });
+
+              // Create notification in Retailer's inbox
+              const notifId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+              const notificationRef = ref(realtimeDb, `notifications/${reqData.retailerId}/${notifId}`);
+              await set(notificationRef, {
+                title: "Stock Request Fulfilled! 🎉",
+                message: `${userData.companyName || userData.name || "A Wholesaler"} now has ${reqData.requestedQuantity}kg of ${payload.name} back in stock.`,
+                type: "stock_update",
+                read: false,
+                createdAt: Date.now()
+              });
+            }
+          }
+        }
+      } catch (err) {
+         console.error("Checking requests failed", err);
+      }
+
+      toast.success(isEditMode ? "Item updated successfully!" : (isUpdatingExisting ? "Merged with existing inventory successfully!" : "Item added to inventory successfully!"));
       setIsAddModalOpen(false);
     } catch (error) {
       console.error("Error saving item:", error);
-      toast.error(isEditMode ? "Failed to update item." : "Failed to add item.");
+      toast.error(isEditMode ? "Failed to update item." : (isUpdatingExisting ? "Failed to merge with existing inventory." : "Failed to add item."));
     } finally {
       setIsSubmitting(false);
     }
@@ -271,7 +426,40 @@ function InventoryPageContent() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
+      
+      {/* Pending Requests Banner */}
+      {pendingRequests.length > 0 && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-6 shadow-lg shadow-orange-500/5 dark:bg-orange-500/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-orange-500 text-white rounded-full p-2">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-orange-700 dark:text-orange-400">Retailer Stock Requests</h2>
+              <p className="text-sm text-orange-600/80 dark:text-orange-400/80">Retailers are waiting for stock on these items. Updating your quantity above their request will automatically notify them!</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {pendingRequests.map((req, i) => (
+              <div key={i} className="flex flex-col p-3 rounded-lg bg-white/50 border border-orange-500/20 dark:bg-black/20">
+                <div className="flex justify-between items-start">
+                  <span className="font-bold text-foreground dark:text-white">{req.productName}</span>
+                  <button onClick={() => handleDenyRequest(req)} className="p-1 hover:bg-orange-500/20 text-orange-500 rounded transition-colors" title="Deny / Dismiss Request">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-muted-foreground">Requested by: {req.retailerName}</span>
+                  <span className="text-xs font-bold bg-orange-500 text-white px-2 py-0.5 rounded-full">{req.requestedQuantity} kg</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search & Filter Section */}
       <div className="space-y-4">
         {/* Filter Type Buttons */}
@@ -335,7 +523,7 @@ function InventoryPageContent() {
       ) : (
         <>
           {/* Inventory Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {filteredInventory.map((item, index) => {
               const quantityPercentage = (item.quantity / item.maxQuantity) * 100;
               const isLowStock = item.status === "low-stock";
@@ -350,6 +538,13 @@ function InventoryPageContent() {
                 >
                   {/* Action Menu (Visible on Hover) */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                    <button
+                      onClick={() => openDumpModal(item)}
+                      className="bg-white/80 dark:bg-black/50 hover:bg-orange-50 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 p-2 rounded-full shadow-sm backdrop-blur border border-orange-100 dark:border-white/10 transition-colors"
+                      title="Log Spoilage / Dump"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => openEditModal(item)}
                       className="bg-white/80 dark:bg-black/50 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-2 rounded-full shadow-sm backdrop-blur border border-emerald-100 dark:border-white/10 transition-colors"
@@ -467,22 +662,36 @@ function InventoryPageContent() {
         </>
       )}
 
-      {/* Add Item Modal */}
+      {/* Add / Edit Inventory Modal / Sheet */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-md bg-background border-border shadow-2xl overflow-hidden dark:bg-[#121212] dark:border-white/10">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground dark:text-white">
-                  {isEditMode ? "Edit Fruit Details" : "Add New Inventory"}
+        <div 
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" 
+          onClick={() => setIsAddModalOpen(false)}
+        >
+          <Card 
+            className="w-full max-w-lg bg-background border-border shadow-2xl overflow-hidden dark:bg-[#121212] dark:border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-500 max-h-[92vh] flex flex-col" 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Grabber for Mobile */}
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto my-3 sm:hidden" />
+
+            <div className="px-6 py-4 sm:p-6 border-b border-border dark:border-white/10 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-foreground dark:text-white uppercase tracking-tight">
+                  {isEditMode ? "Update Produce" : "New Inventory"}
                 </h2>
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">
+                  {isEditMode ? "Modify existing stock details" : "Add fresh stock to marketplace"}
+                </p>
               </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="w-10 h-10 flex items-center justify-center bg-muted/50 hover:bg-muted text-muted-foreground rounded-full transition-all dark:text-white/60 dark:hover:bg-white/10 active:scale-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
 
               <form onSubmit={handleAddItem} className="space-y-4">
                 <div className="space-y-4">
@@ -574,20 +783,20 @@ function InventoryPageContent() {
                   </div>
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-6 flex flex-col sm:flex-row gap-3 sticky bottom-0 bg-background/80 backdrop-blur-md mt-6">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium transition-colors dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                    className="flex-1 order-2 sm:order-1 px-4 py-3 border border-border text-foreground rounded-xl hover:bg-muted font-bold text-xs uppercase tracking-widest transition-all dark:border-white/20 dark:text-white dark:hover:bg-white/10 active:scale-95"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors disabled:opacity-50"
+                    className="flex-[2] order-1 sm:order-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-600/20 active:scale-95"
                   >
-                    {isSubmitting ? "Processing..." : (isEditMode ? "Save Changes" : "Add to Stock")}
+                    {isSubmitting ? "Processing..." : (isEditMode ? "Save Changes" : "Confirm Addition")}
                   </button>
                 </div>
               </form>
@@ -598,8 +807,7 @@ function InventoryPageContent() {
 
       <style jsx global>{`
                 @keyframes pulse-soft {
-                    0%,
-                    100% {
+                    0%, 100% {
                         border-color: rgba(239, 68, 68, 0.3);
                         box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2);
                     }
@@ -612,6 +820,92 @@ function InventoryPageContent() {
                     animation: pulse-soft 2s ease-in-out infinite;
                 }
             `}</style>
+
+      {/* Dump Modal / Sheet Overlay */}
+      {isDumpModalOpen && dumpItem && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300"
+          onClick={() => setIsDumpModalOpen(false)}
+        >
+          <div 
+            className="bg-background max-w-md w-full rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-500 flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Grabber for Mobile */}
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto my-3 sm:hidden" />
+
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Log Spoilage</h3>
+                </div>
+                <button
+                  onClick={() => setIsDumpModalOpen(false)}
+                  className="w-10 h-10 flex items-center justify-center bg-muted/50 hover:bg-muted text-muted-foreground transition-all rounded-full active:scale-95"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-muted/50 rounded-2xl p-5 mb-6 border border-border/50">
+                <p className="font-black text-lg flex items-center gap-3 uppercase tracking-tight">
+                  <span className="text-3xl">{dumpItem.image}</span> {dumpItem.name}
+                </p>
+                <div className="flex justify-between text-[10px] mt-3 text-muted-foreground uppercase font-black tracking-widest opacity-60">
+                  <span>Stock: <span className="text-foreground dark:text-white">{dumpItem.quantity} kg</span></span>
+                  <span>Freshness: <span className={`${dumpItem.freshness < 50 ? 'text-orange-500' : 'text-foreground dark:text-white'}`}>{dumpItem.freshness}%</span></span>
+                </div>
+              </div>
+
+              <form onSubmit={handleDumpSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Quantity to Dump (kg)</label>
+                  <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed opacity-60 font-medium">
+                    This will permanently remove stock and log the financial loss in your analytics dashboard. This action cannot be undone.
+                  </p>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max={dumpItem.quantity}
+                    placeholder="e.g. 5"
+                    value={dumpQuantity}
+                    onChange={e => setDumpQuantity(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/50 dark:bg-white/5 dark:border-white/10 placeholder:font-normal placeholder:opacity-50"
+                  />
+                  {dumpQuantity && parseInt(dumpQuantity) > 0 && (
+                    <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg mt-3">
+                       <p className="text-xs text-red-500 font-bold flex items-center gap-2">
+                         <DollarSign className="w-3 h-3" /> Est. Financial Loss: ₹{(parseInt(dumpQuantity) * dumpItem.pricePerKg).toFixed(2)}
+                       </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsDumpModalOpen(false)}
+                    className="flex-1 order-2 sm:order-1 px-4 py-3 border border-border text-foreground rounded-xl hover:bg-muted font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-[2] order-1 sm:order-2 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all flex items-center justify-center disabled:opacity-50 shadow-lg shadow-red-600/20 active:scale-95"
+                  >
+                    {isSubmitting ? "Logging..." : "Confirm Spoilage"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

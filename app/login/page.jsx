@@ -63,7 +63,7 @@ function LoginView() {
         // 3. 2FA is NOT showing
         // 4. We are NOT currently "logging in" (isLoading)
         if (isAuthenticated && authRole && !show2FA && !isLoading) {
-            router.push(authRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(authRole === 'wholesaler' ? '/wholesaler/dashboard' : authRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         }
     }, [isAuthenticated, authRole, router, show2FA, isLoading]);
 
@@ -80,7 +80,7 @@ function LoginView() {
         // Simulate network delay
         setTimeout(() => {
             // Force reload to ensure AuthContext picks up the new mock state immediately on fresh load
-            window.location.href = submittedRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard';
+            window.location.href = submittedRole === 'wholesaler' ? '/wholesaler/dashboard' : submittedRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard';
         }, 500);
     }
 
@@ -121,14 +121,14 @@ function LoginView() {
             if (dbData.role && dbData.role !== role) {
                 toast.warning(`This account is registered as a ${dbData.role.toUpperCase()}. Redirecting you to the correct dashboard...`);
                 setTimeout(() => {
-                    router.push(dbData.role === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+                    router.push(dbData.role === 'wholesaler' ? '/wholesaler/dashboard' : dbData.role === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
                 }, 2000);
                 setIsLoading(false);
                 return;
             }
 
             // Redirect based on role if no 2FA
-            router.push(userRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(userRole === 'wholesaler' ? '/wholesaler/dashboard' : userRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         } catch (error) {
             console.error("Login failed full error object:", error);
             console.error("Error Code:", error.code);
@@ -199,7 +199,7 @@ function LoginView() {
             if (dbData.role && dbData.role !== role) {
                 toast.warning(`You already have a ${dbData.role.toUpperCase()} account. Switching to your dashboard...`);
                 setTimeout(() => {
-                    router.push(dbData.role === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+                    router.push(dbData.role === 'wholesaler' ? '/wholesaler/dashboard' : dbData.role === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
                 }, 2000);
                 setIsLoading(false);
                 return;
@@ -220,7 +220,7 @@ function LoginView() {
             }
 
             // Redirect based on the final determined role
-            router.push(finalRole === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(finalRole === 'wholesaler' ? '/wholesaler/dashboard' : finalRole === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         } catch (error) {
             console.error("Login failed:", error);
         } finally {
@@ -255,7 +255,7 @@ function LoginView() {
 
             // Success! Redirect
             toast.success("Identity verified successfully");
-            router.push(twoFactorData.role === 'wholesaler' ? '/wholesaler/dashboard' : '/retailer/dashboard');
+            router.push(twoFactorData.role === 'wholesaler' ? '/wholesaler/dashboard' : twoFactorData.role === 'driver' ? '/driver/dashboard' : '/retailer/dashboard');
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -310,13 +310,13 @@ function LoginView() {
     }, [show2FA, isEmailMode, emailSentOnce, twoFactorData]);
 
     const { t } = useLanguage();
-    const themeColor = role === 'wholesaler' ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'
-    const buttonColor = role === 'wholesaler' ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
+    const themeColor = role === 'wholesaler' ? 'text-amber-600 hover:text-amber-700' : role === 'driver' ? 'text-purple-600 hover:text-purple-700' : 'text-emerald-600 hover:text-emerald-700'
+    const buttonColor = role === 'wholesaler' ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500' : role === 'driver' ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
 
     return (
         <AuthLayout
             role={role}
-            title={t("welcomeBackUser").replace("{role}", role === 'wholesaler' ? t("partner") : t("shopper"))}
+            title={t("welcomeBackUser").replace("{role}", role === 'wholesaler' ? t("partner") : role === 'driver' ? "Driver" : t("shopper"))}
             subtitle={t("pleaseEnterDetails")}
         >
             <Form {...form}>
@@ -381,11 +381,11 @@ function LoginView() {
                     ) : (
                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="text-center mb-6">
-                                <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${role === 'wholesaler' ? 'bg-amber-100 dark:bg-amber-500/20' : 'bg-emerald-100 dark:bg-emerald-500/20'}`}>
+                                <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${role === 'wholesaler' ? 'bg-amber-100 dark:bg-amber-500/20' : role === 'driver' ? 'bg-purple-100 dark:bg-purple-500/20' : 'bg-emerald-100 dark:bg-emerald-500/20'}`}>
                                     {isEmailMode ? (
-                                        <Mail className={`w-8 h-8 ${role === 'wholesaler' ? 'text-amber-600' : 'text-emerald-600'}`} />
+                                        <Mail className={`w-8 h-8 ${role === 'wholesaler' ? 'text-amber-600' : role === 'driver' ? 'text-purple-600' : 'text-emerald-600'}`} />
                                     ) : (
-                                        <Lock className={`w-8 h-8 ${role === 'wholesaler' ? 'text-amber-600' : 'text-emerald-600'}`} />
+                                        <Lock className={`w-8 h-8 ${role === 'wholesaler' ? 'text-amber-600' : role === 'driver' ? 'text-purple-600' : 'text-emerald-600'}`} />
                                     )}
                                 </div>
                                 <h3 className="text-xl font-bold dark:text-white">
@@ -445,15 +445,6 @@ function LoginView() {
                                             </button>
                                         </>
                                     )}
-                                    {(isEmailMode || isRecovery) && (
-                                        <button
-                                            type="button"
-                                            onClick={() => { setIsEmailMode(false); setIsRecovery(false); setOtp(""); }}
-                                            className="text-xs text-muted-foreground hover:text-foreground underline"
-                                        >
-                                            Use Authenticator App instead
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -461,7 +452,7 @@ function LoginView() {
 
                     <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-2">
-                            <Checkbox id="remember" className={`data-[state=checked]:${role === 'wholesaler' ? 'bg-amber-600 border-amber-600' : 'bg-emerald-600 border-emerald-600'}`} />
+                            <Checkbox id="remember" className={`data-[state=checked]:${role === 'wholesaler' ? 'bg-amber-600 border-amber-600' : role === 'driver' ? 'bg-purple-600 border-purple-600' : 'bg-emerald-600 border-emerald-600'}`} />
                             <label
                                 htmlFor="remember"
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground dark:text-white/60"

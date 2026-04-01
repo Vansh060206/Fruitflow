@@ -12,10 +12,10 @@ export async function POST(req) {
             if (!uid || !otp) {
                 return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
             }
-            const verificationRef = ref(realtimeDb, `users/${uid}/tempVerification`);
+            const verificationRef = ref(realtimeDb, `otps/${uid}`);
             const snapshot = await get(verificationRef);
             if (!snapshot.exists()) {
-                return NextResponse.json({ error: 'Verification code expired or not found' }, { status: 400 });
+                return NextResponse.json({ error: 'Verification code not found (expired or incorrect user)' }, { status: 400 });
             }
             const data = snapshot.val();
             if (data.expiresAt < Date.now()) {

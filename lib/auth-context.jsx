@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useMemo } from "react"
 import {
     onAuthStateChanged,
     signOut as firebaseSignOut
@@ -22,9 +22,6 @@ export function AuthProvider({ children }) {
             return;
         }
 
-        // We can't use 'require' dynamically easily in some environments, 
-        // but here it's fine as it's client-side. 
-        // Better to import them at the top if possible, but firebase.js might already handle it.
         const setupRealtimeSync = async (currentUser) => {
             const { ref, onValue } = await import("firebase/database");
             const { realtimeDb } = await import("@/lib/firebase");
@@ -50,11 +47,18 @@ export function AuthProvider({ children }) {
 
         let unsubscribeRtdb = null;
 
+        // Force-clear loading state after 10 seconds as a final fallback
+        const loadingTimer = setTimeout(() => {
+            if (isLoading) {
+               console.warn("Auth initialization timed out after 10s. Force-clearing loading state.");
+               setIsLoading(false);
+            }
+        }, 10000);
+
         const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
 
             if (currentUser) {
-                // If there was a previous RTDB subscription, clean it up
                 if (unsubscribeRtdb) unsubscribeRtdb();
                 unsubscribeRtdb = await setupRealtimeSync(currentUser);
             } else {
@@ -66,6 +70,7 @@ export function AuthProvider({ children }) {
         });
 
         return () => {
+            clearTimeout(loadingTimer);
             unsubscribeAuth();
             if (unsubscribeRtdb) unsubscribeRtdb();
         };
@@ -83,6 +88,18 @@ export function AuthProvider({ children }) {
         }
     }
 
+    const value = useMemo(() => ({
+        user,
+        role,
+        userData,
+        isAuthenticated: !!user,
+        isEmailVerified: user?.emailVerified || userData?.isEmailVerified || false,
+        isPhoneVerified: userData?.isPhoneVerified || false,
+        isAccountVerified: (user?.emailVerified || userData?.isEmailVerified) || (userData?.isPhoneVerified || false),
+        isLoading,
+        logout
+    }), [user, role, userData, isLoading]);
+
     if (isLoading) {
         return (
             <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center">
@@ -92,17 +109,7 @@ export function AuthProvider({ children }) {
     }
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                role,
-                userData,
-                isAuthenticated: !!user,
-                isEmailVerified: user?.emailVerified || false,
-                isLoading,
-                logout
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     )
