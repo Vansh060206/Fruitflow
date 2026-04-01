@@ -179,7 +179,7 @@ function RetailerMandiPricesContent() {
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-4">
                                         <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-purple-500/10">
                                             <p className="text-[9px] uppercase font-bold tracking-tighter">Min Price</p>
                                             <p className="text-foreground font-black text-sm dark:text-white">₹{mandi.priceMin}</p>

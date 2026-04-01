@@ -146,7 +146,7 @@ export function RetailerShell({ children }) {
                     </div>
                 </aside>
 
-                <main className="flex-1 min-h-screen pb-20 lg:pb-0">
+                <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden min-h-screen pb-20 lg:pb-0">
                     {/* Header */}
                     <header className="bg-card/50 backdrop-blur-xl border-b border-border px-4 py-3 lg:p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
                         <div className="flex items-center justify-between">

@@ -177,14 +177,14 @@ export default function MandiPricesPage() {
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                                        <div className="flex-1 p-2 bg-muted/50 rounded-lg dark:bg-white/5">
-                                            <p>Min</p>
-                                            <p className="text-foreground font-bold dark:text-white">₹{mandi.priceMin}</p>
+                                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-4">
+                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10">
+                                            <p className="text-[9px] uppercase font-bold tracking-tighter">Min Price</p>
+                                            <p className="text-foreground font-black text-sm dark:text-white">₹{mandi.priceMin}</p>
                                         </div>
-                                        <div className="flex-1 p-2 bg-muted/50 rounded-lg dark:bg-white/5">
-                                            <p>Max</p>
-                                            <p className="text-foreground font-bold dark:text-white">₹{mandi.priceMax}</p>
+                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10">
+                                            <p className="text-[9px] uppercase font-bold tracking-tighter">Max Price</p>
+                                            <p className="text-foreground font-black text-sm dark:text-white">₹{mandi.priceMax}</p>
                                         </div>
                                     </div>
                                     

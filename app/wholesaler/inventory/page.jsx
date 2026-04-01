@@ -537,24 +537,24 @@ function InventoryPageContent() {
                   }}
                 >
                   {/* Action Menu (Visible on Hover for desktop, Always visible on mobile) */}
-                  <div className="absolute top-4 right-4 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/50 dark:bg-black/50 p-1 rounded-full md:bg-transparent md:p-0">
+                  <div className="absolute top-2 right-2 flex flex-col md:flex-row items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/50 dark:bg-black/50 p-1 rounded-xl md:bg-transparent md:p-0">
                     <button
                       onClick={() => openDumpModal(item)}
-                      className="bg-white/80 dark:bg-black/50 hover:bg-orange-50 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 p-2 rounded-full shadow-sm backdrop-blur border border-orange-100 dark:border-white/10 transition-colors"
+                      className="bg-white/80 dark:bg-black/50 hover:bg-orange-50 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 p-1.5 md:p-2 rounded-full shadow-sm backdrop-blur border border-orange-100 dark:border-white/10 transition-colors"
                       title="Log Spoilage / Dump"
                     >
                       <AlertTriangle className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => openEditModal(item)}
-                      className="bg-white/80 dark:bg-black/50 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-2 rounded-full shadow-sm backdrop-blur border border-emerald-100 dark:border-white/10 transition-colors"
+                      className="bg-white/80 dark:bg-black/50 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-1.5 md:p-2 rounded-full shadow-sm backdrop-blur border border-emerald-100 dark:border-white/10 transition-colors"
                       title="Edit Item"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteItem(item.id)}
-                      className="bg-white/80 dark:bg-black/50 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 p-2 rounded-full shadow-sm backdrop-blur border border-red-100 dark:border-white/10 transition-colors"
+                      className="bg-white/80 dark:bg-black/50 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 p-1.5 md:p-2 rounded-full shadow-sm backdrop-blur border border-red-100 dark:border-white/10 transition-colors"
                       title="Delete Item"
                     >
                       <Trash2 className="w-4 h-4" />
