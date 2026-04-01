@@ -517,7 +517,10 @@ function RetailerDashboardContent() {
                     <p className="text-muted-foreground text-sm dark:text-white/40">{item.lastOrder}</p>
                   </div>
                   <button
-                    onClick={() => addToCart(item)}
+                    onClick={() => {
+                        toast.info("Please guarantee fresh stock availability from the live marketplace!");
+                        setTimeout(() => router.push('/retailer/browse'), 1500);
+                    }}
                     className="bg-purple-600/10 hover:bg-purple-600 text-purple-700 hover:text-white w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500 dark:hover:text-white"
                   >
                     <ShoppingBag className="w-5 h-5" />
@@ -536,7 +539,7 @@ function RetailerDashboardContent() {
             <h3 className="text-2xl font-bold text-purple-900 mb-2 dark:text-white">{t("specialOffer")}</h3>
             <p className="text-purple-800/70 dark:text-white/60">{t("specialOfferDesc")}</p>
           </div>
-          <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-purple-600/20 transition-all active:scale-95 dark:shadow-none">
+          <button onClick={() => router.push('/retailer/browse')} className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-purple-600/20 transition-all active:scale-95 dark:shadow-none">
             {t("shopNow")}
           </button>
         </div>

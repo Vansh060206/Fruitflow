@@ -167,6 +167,8 @@ function RetailerCartContent() {
         };
       }
 
+      updates[`negotiation_counts/${userData.uid}`] = negotiationCount + 1;
+
       await update(ref(realtimeDb), updates);
       
       toast.success(`Negotiation request sent!`, { icon: "🤝" });

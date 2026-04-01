@@ -536,8 +536,8 @@ function InventoryPageContent() {
                     transitionDelay: `${index * 50}ms`,
                   }}
                 >
-                  {/* Action Menu (Visible on Hover) */}
-                  <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                  {/* Action Menu (Visible on Hover for desktop, Always visible on mobile) */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10 bg-white/50 dark:bg-black/50 p-1 rounded-full md:bg-transparent md:p-0">
                     <button
                       onClick={() => openDumpModal(item)}
                       className="bg-white/80 dark:bg-black/50 hover:bg-orange-50 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 p-2 rounded-full shadow-sm backdrop-blur border border-orange-100 dark:border-white/10 transition-colors"
@@ -563,7 +563,7 @@ function InventoryPageContent() {
 
                   {/* Fruit Image */}
                   <div className="flex items-center justify-center mb-4">
-                    <div className="text-7xl group-hover:rotate-12 transition-transform duration-300">
+                    <div className="text-5xl md:text-7xl group-hover:rotate-12 transition-transform duration-300">
                       {item.image}
                     </div>
                   </div>

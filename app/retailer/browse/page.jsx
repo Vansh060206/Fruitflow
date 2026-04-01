@@ -399,7 +399,7 @@ function RetailerBrowseContent() {
 
                 {/* Fruit Image */}
                 <div className="relative mb-4 overflow-hidden rounded-2xl bg-muted/30 dark:bg-white/5">
-                  <div className="text-7xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 flex items-center justify-center py-8">
+                  <div className="text-5xl md:text-7xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 flex items-center justify-center py-8">
                     {fruit.image}
                   </div>
                 </div>
