@@ -49,7 +49,7 @@ const recentActivity = [
   { id: 4, action: "Low stock alert", time: "2 hours ago", type: "alert" },
 ];
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 
 // Stat card with animated counter - Memoized for performance
 const StatCard = memo(({ title, value, icon: Icon, delay }) => {
