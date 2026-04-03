@@ -199,7 +199,7 @@ export function TwoFactorSetup({ roleColor = "emerald" }) {
                                 maxLength={6}
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                                className="text-center text-2xl tracking-[1em] font-bold h-14"
+                                className="text-center text-xl sm:text-2xl tracking-[0.5em] sm:tracking-[1em] font-bold h-14"
                                 required
                             />
                         </div>

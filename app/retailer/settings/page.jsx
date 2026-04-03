@@ -56,7 +56,7 @@ function SettingsPageContent() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-3 sm:p-6 space-y-6 max-w-4xl overflow-x-hidden">
       {/* Profile Settings */}
       <Card className={`bg-card/50 backdrop-blur-sm border-border p-6 transition-all duration-700 dark:bg-white/5 dark:border-white/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`} style={{ transitionDelay: "0ms" }}>
         <div className="flex items-center gap-3 mb-6">

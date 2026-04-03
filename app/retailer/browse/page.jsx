@@ -405,21 +405,21 @@ function RetailerBrowseContent() {
                 </div>
 
                 {/* Info */}
-                <div className="mb-3">
-                  <h3 className="text-lg font-bold text-foreground mb-1 dark:text-white leading-tight">{t(fruit.name)}</h3>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-white/40">
-                    <Store className="w-3 h-3" />
+                <div className="mb-3 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-foreground mb-1 dark:text-white leading-tight truncate">{t(fruit.name)}</h3>
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground dark:text-white/40 min-w-0">
+                    <Store className="w-3 h-3 shrink-0" />
                     <span className="truncate">{fruit.wholesalerName}</span>
                   </div>
                 </div>
 
                 {/* Freshness Indicator */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-muted-foreground text-xs font-medium dark:text-white/50">{t("freshness")}</span>
-                    <span className="text-foreground text-xs font-bold dark:text-white/80">{getFreshnessLabel(fruit.freshness)}</span>
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span className="text-muted-foreground text-[10px] sm:text-xs font-medium dark:text-white/50">{t("freshness")}</span>
+                    <span className="text-foreground text-[10px] sm:text-xs font-bold dark:text-white/80">{getFreshnessLabel(fruit.freshness)}</span>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden dark:bg-white/10">
+                  <div className="w-full bg-muted rounded-full h-1 sm:h-1.5 overflow-hidden dark:bg-white/10">
                     <div
                       className={`h-full ${getFreshnessColor(fruit.freshness)} transition-all duration-1000 rounded-full`}
                       style={{
@@ -431,12 +431,12 @@ function RetailerBrowseContent() {
                 </div>
 
                 {/* Price and Stock */}
-                <div className="mb-6">
-                  <div className="flex items-baseline mb-2">
-                    <span className="text-3xl font-black text-purple-600 dark:text-purple-400">₹{fruit.price.toFixed(2)}</span>
-                    <span className="text-muted-foreground text-xs font-medium ml-1 dark:text-white/40">/kg</span>
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex items-baseline mb-1 sm:mb-2 flex-wrap min-w-0">
+                    <span className="text-xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 truncate">₹{fruit.price.toFixed(2)}</span>
+                    <span className="text-muted-foreground text-[10px] sm:text-xs font-medium ml-1 dark:text-white/40">/kg</span>
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium dark:text-white/50">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground font-medium dark:text-white/50 truncate">
                     Available: {fruit.quantity} kg
                   </div>
                 </div>

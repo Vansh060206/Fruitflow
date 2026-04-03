@@ -78,12 +78,12 @@ function StatCard({ title, value, icon: Icon, delay }) {
   }, [mounted, targetValue]);
 
   return (
-    <Card className={`bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 transition-all duration-700 dark:bg-white/5 dark:border-white/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-      <div className="flex items-center justify-between mb-2 sm:mb-4">
-        <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{title}</h3>
-        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
+    <Card className={`bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 transition-all duration-700 dark:bg-white/5 dark:border-white/10 overflow-hidden ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+      <div className="flex items-center justify-between mb-1 sm:mb-4">
+        <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight truncate mr-1">{title}</h3>
+        <Icon className="w-3 h-3 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
       </div>
-      <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">
+      <p className="text-lg sm:text-3xl font-bold text-foreground dark:text-white truncate">
         {value.includes("₹") && "₹"}
         {Math.floor(count).toLocaleString()}
         {value.includes("kg") && " kg"}
@@ -330,7 +330,7 @@ function WholesalerDashboardContent() {
   }, [aiInsights.length]);
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-2 sm:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       {isNewUser && (
         <Card className="bg-emerald-500/10 border-emerald-500/20 p-6 mb-8 mt-2 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -349,7 +349,7 @@ function WholesalerDashboardContent() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard title={t("todaysSales")} value={displaySales} icon={TrendingUp} delay={0} />
         <StatCard title={t("activeOrders")} value={displayOrders} icon={ShoppingCart} delay={100} />
         <StatCard title={t("stockRemaining")} value={displayStock} icon={Package} delay={200} />
@@ -394,8 +394,8 @@ function WholesalerDashboardContent() {
               {t("viewAll")} →
             </Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-6 sm:mx-0">
+            <table className="w-full min-w-[600px] lg:min-w-full">
               <thead className="bg-muted/50 dark:bg-white/5">
                 <tr>
                   <th className="text-left px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-white/40">Buyer</th>
@@ -493,13 +493,13 @@ function WholesalerDashboardContent() {
                     <p className="text-sm text-blue-800/80 dark:text-blue-100/70">
                         Highest demand for <span className="font-bold text-blue-900 dark:text-white underline decoration-blue-500">Mango</span> detected today:
                     </p>
-                    <div className="flex items-end justify-between">
-                        <div>
-                            <p className="text-2xl font-black text-blue-900 dark:text-white">{bestMarket.mandiName}</p>
-                            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{bestMarket.state}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 overflow-hidden">
+                        <div className="min-w-0">
+                            <p className="text-xl sm:text-2xl font-black text-blue-900 dark:text-white truncate">{bestMarket.mandiName}</p>
+                            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest truncate">{bestMarket.state}</p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">₹{bestMarket.priceModal}/kg</p>
+                        <div className="text-left sm:text-right shrink-0">
+                            <p className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">₹{bestMarket.priceModal}/kg</p>
                             <p className="text-[10px] text-emerald-500 font-bold">+12% Profit Margin</p>
                         </div>
                     </div>

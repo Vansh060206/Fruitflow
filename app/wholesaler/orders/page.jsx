@@ -263,39 +263,39 @@ function OrdersPageContent() {
   const pendingPayments = orders.filter((o) => o.paymentStatus === "pending").reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6">
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{t("totalOrders")}</h3>
-            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
+            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight truncate mr-1">{t("totalOrders")}</h3>
+            <ShoppingCart className="w-3 h-3 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">{totalOrders}</p>
+          <p className="text-lg sm:text-3xl font-bold text-foreground dark:text-white truncate">{totalOrders}</p>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10">
+        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{t("pendingOrders")}</h3>
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 shrink-0" />
+            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight truncate mr-1">{t("pendingOrders")}</h3>
+            <Clock className="w-3 h-3 sm:w-5 sm:h-5 text-yellow-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">{pendingOrders}</p>
+          <p className="text-lg sm:text-3xl font-bold text-foreground dark:text-white truncate">{pendingOrders}</p>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10">
+        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{t("totalRevenue")}</h3>
-            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
+            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight truncate mr-1">{t("totalRevenue")}</h3>
+            <DollarSign className="w-3 h-3 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">₹{totalRevenue.toFixed(2)}</p>
+          <p className="text-lg sm:text-3xl font-bold text-foreground dark:text-white truncate">₹{totalRevenue.toFixed(2)}</p>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10">
+        <Card className="bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 dark:bg-white/5 dark:border-white/10 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight">{t("pendingPayments")}</h3>
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" />
+            <h3 className="text-muted-foreground text-[10px] sm:text-sm font-medium dark:text-white/60 leading-tight truncate mr-1">{t("pendingPayments")}</h3>
+            <Clock className="w-3 h-3 sm:w-5 sm:h-5 text-orange-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-3xl font-bold text-foreground dark:text-white">₹{pendingPayments.toFixed(2)}</p>
+          <p className="text-lg sm:text-3xl font-bold text-foreground dark:text-white truncate">₹{pendingPayments.toFixed(2)}</p>
         </Card>
       </div>
 
