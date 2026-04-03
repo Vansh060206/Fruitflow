@@ -9,10 +9,29 @@ import { useAuth } from "@/lib/auth-context";
 function RetailerProfileContent() {
     const [mounted, setMounted] = useState(false);
     const { userData } = useAuth();
+    const [totalOrders, setTotalOrders] = useState(0);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Real-time Order Count Listener
+    const { ref, onValue } = require("firebase/database");
+    const { realtimeDb } = require("@/lib/firebase");
+
+    useEffect(() => {
+        if (!userData?.uid) return;
+        const ordersRef = ref(realtimeDb, `retailer_orders/${userData.uid}`);
+        
+        return onValue(ordersRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const count = Object.keys(snapshot.val()).length;
+                setTotalOrders(count);
+            } else {
+                setTotalOrders(0);
+            }
+        });
+    }, [userData?.uid]);
 
     const userInitials = userData?.name
         ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -121,8 +140,10 @@ function RetailerProfileContent() {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-sm text-muted-foreground dark:text-white/40">Total Orders</label>
-                            <p className="text-foreground font-medium dark:text-white">{userData?.totalSales || 0} Orders</p>
+                            <label className="text-sm text-muted-foreground dark:text-white/40">Total Orders Placed</label>
+                            <p className="text-2xl font-black text-purple-600 dark:text-purple-400 transition-all duration-500 transform hover:scale-110">
+                                {totalOrders}
+                            </p>
                         </div>
                     </div>
                 </Card>
