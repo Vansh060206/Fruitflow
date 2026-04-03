@@ -78,7 +78,7 @@ export function WholesalerShell({ children }) {
                     />
                 )}
                 {/* Sidebar */}
-                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-50 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 dark:bg-white/5 dark:border-white/10`}>
+                <aside className={`fixed lg:sticky top-0 h-screen bg-card/50 backdrop-blur-xl border-r border-border transition-all duration-300 z-50 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} w-64 shrink-0 dark:bg-white/5 dark:border-white/10`}>
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-8">
                             <h1 className="text-2xl font-bold text-foreground dark:text-white">FruitFlow</h1>
@@ -115,7 +115,7 @@ export function WholesalerShell({ children }) {
                     </div>
                 </aside>
 
-                <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden min-h-screen pb-20 lg:pb-0">
+                <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden min-h-screen pb-20 lg:pb-0 relative">
                     {/* Header */}
                     <header className="bg-card/50 backdrop-blur-xl border-b border-border px-4 py-3 lg:p-6 sticky top-0 z-30 transition-all duration-300 dark:bg-white/5 dark:border-white/10">
                         <div className="flex items-center justify-between">
