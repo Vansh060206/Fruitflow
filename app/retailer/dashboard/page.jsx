@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/protected-route";
-import { TrendingDown, Clock, DollarSign, Star, ShoppingBag, Sparkles, MapPin, Loader2 } from "lucide-react";
+import { TrendingDown, Clock, DollarSign, Star, ShoppingBag, Sparkles, MapPin, Loader2, Navigation } from "lucide-react";
 import { ref, onValue } from "firebase/database";
 import { realtimeDb } from "@/lib/firebase";
 import { useLanguage } from "@/lib/language-context";
