@@ -98,7 +98,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      <div className="min-h-screen w-full bg-background relative overflow-hidden text-foreground selection:bg-emerald-500/30 font-sans">
+      <div className="min-h-screen w-full bg-background relative overflow-x-hidden text-foreground selection:bg-emerald-500/30 font-sans max-w-full">
         
         {/* Animated Background Gradients */}
         <div className="absolute top-0 left-0 w-full h-[80vh] opacity-30 dark:opacity-20 pointer-events-none" style={{
@@ -136,20 +136,20 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 max-w-7xl mx-auto flex flex-col items-center text-center z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold text-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <Sparkles className="w-4 h-4" />
-            <span>The Future of B2B Agriculture</span>
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="truncate">The Future of B2B Agriculture</span>
           </div>
           
-          <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 sm:mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 sm:mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150 break-words w-full">
             Revolutionizing the <br className="hidden md:block" />
-            <span className="bg-clip-text text-transparent bg-[length:200%_auto] block mt-2" style={{
+            <span className="bg-clip-text text-transparent bg-[length:200%_auto] block mt-2 px-2" style={{
               backgroundImage: 'linear-gradient(to right, #10b981, #3b82f6, #10b981)',
               animation: 'textShimmer 3s infinite linear'
             }}>
               Fruit Supply Chain.
             </span>
           </h1>
-
+ Broadway
           <p className="text-base sm:text-lg md:text-2xl text-muted-foreground max-w-3xl mb-10 sm:mb-12 font-medium animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 px-2 sm:px-0">
             A state-of-the-art logistics engine connecting Wholesale Distributors directly to Retail Shops. Built with Real-time synchronization, AI Demand Prediction, and dynamic Khata Ledgers.
           </p>
@@ -166,11 +166,11 @@ export default function LandingPage() {
         </section>
 
         {/* Dynamic Features Grid */}
-        <section id="features" className="py-24 bg-muted/30 border-y border-border relative z-10">
-          <div className="max-w-7xl mx-auto px-6">
+        <section id="features" className="py-24 bg-muted/30 border-y border-border relative z-10 max-w-full overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-black mb-4">Enterprise-grade capabilities</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Stop managing hundreds of kilograms of perishable items with pen and paper. Leverage modern software infrastructure.</p>
+              <h2 className="text-3xl md:text-5xl font-black mb-4 px-2">Enterprise-grade capabilities</h2>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Stop managing hundreds of kilograms of perishable items with pen and paper. Leverage modern software infrastructure.</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -198,7 +198,7 @@ export default function LandingPage() {
               <p className="text-sm md:text-lg text-muted-foreground hidden sm:block">Select your role to instantly access your customized command center.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 relative z-10">
               {/* Wholesaler Card */}
               <Link href="/login?role=wholesaler" className="group h-full">
                 <Card className="p-4 md:p-10 bg-background/50 backdrop-blur-md border-border hover:border-blue-500/50 transition-all duration-500 overflow-hidden relative h-full flex flex-col items-center justify-center text-center group-hover:bg-blue-500/5 group-hover:-translate-y-2">
