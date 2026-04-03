@@ -76,7 +76,29 @@ function RetailerDashboardContent() {
   const [recommendedFruits, setRecommendedFruits] = useState([]);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [bestMarket, setBestMarket] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("requesting");
   const router = useRouter();
+
+  // Location Permission Request
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setLocationStatus("granted");
+          toast.success("Location synced! Market prices optimized for your region.");
+        },
+        (err) => {
+          console.warn("Geolocation Blocked:", err);
+          setLocationStatus("denied");
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setLocationStatus("unsupported");
+    }
+  }, []);
 
   // Dynamic Metrics State
   const [metrics, setMetrics] = useState({
@@ -369,15 +391,33 @@ function RetailerDashboardContent() {
             </button>
         </Card>
       </div>
-      {/* Live Order Progress */}
-      {metrics.activeOrders.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-           <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                 <Clock className="w-5 h-5 text-purple-500 animate-pulse" /> Active Order Progress
-              </h3>
-              <Link href="/retailer/orders" className="text-[10px] font-black text-purple-500 uppercase hover:underline tracking-[0.2em]">Full History →</Link>
-           </div>
+      {/* Live Order Progress and Location Status */}
+      <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+         <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+               <h3 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                  <Clock className="w-5 h-5 text-purple-500 animate-pulse" /> Active Progress
+               </h3>
+               {locationStatus === 'granted' ? (
+                 <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-1.5 shrink-0">
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Local Discovery On</span>
+                 </div>
+               ) : (
+                 <button 
+                  onClick={() => window.location.reload()}
+                  className="px-2 py-0.5 bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-full text-[8px] font-black text-zinc-500 uppercase tracking-widest hover:bg-purple-500/10 hover:text-purple-500 transition-colors"
+                 >
+                   Enable GPS For Proximity
+                 </button>
+               )}
+            </div>
+            {metrics.activeOrders.length > 0 && (
+               <Link href="/retailer/orders" className="text-[10px] font-black text-purple-500 uppercase hover:underline tracking-[0.2em]">Full History →</Link>
+            )}
+         </div>
+
+         {metrics.activeOrders.length > 0 ? (
            <div className="grid gap-4">
               {metrics.activeOrders.map((order) => (
                 <Card key={order.id} className="bg-card/50 backdrop-blur-md border-border p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 dark:bg-white/5 dark:border-white/10 hover:border-purple-500/40 transition-all group overflow-hidden relative" onClick={() => router.push('/retailer/orders')}>
@@ -432,8 +472,22 @@ function RetailerDashboardContent() {
                 </Card>
               ))}
            </div>
-        </div>
-      )}
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-6 bg-zinc-900/50 border-white/5 border-dashed flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] font-black text-zinc-600 uppercase mb-2">Live logistics inactive</p>
+                    <p className="text-xs text-zinc-500">Active orders will show live map tracks and proximity arrival alerts here.</p>
+                </Card>
+                {locationStatus !== 'granted' && (
+                    <Card className="p-6 bg-purple-500/5 border-purple-500/20 border-dashed flex flex-col items-center justify-center text-center group cursor-pointer" onClick={() => window.location.reload()}>
+                        <MapPin className="w-5 h-5 text-purple-500 mb-2 group-hover:bounce" />
+                        <p className="text-[10px] font-black text-purple-600 uppercase mb-1">Enable Location Tracking</p>
+                        <p className="text-xs text-purple-500/70 italic">Find wholesalers nearest to your shop for faster delivery.</p>
+                    </Card>
+                )}
+            </div>
+         )}
+      </div>
 
       {/* Recommended Fruits */}
       <div>

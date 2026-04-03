@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { ref, onValue, update } from "firebase/database";
@@ -90,11 +90,25 @@ export default function DriverDashboard() {
 
   const requestLocation = () => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => toast.error("GPS access needed for navigation updates."),
+       toast.info("Requesting GPS access for live tracking...", { duration: 2000 });
+       navigator.geolocation.getCurrentPosition(
+        (pos) => {
+           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+           setCurrentLocation(loc);
+           toast.success("GPS Live! Tracking enabled.");
+           // Save to profile for wholesaler visibility
+           if (userData?.uid) {
+              update(ref(realtimeDb, `users/${userData.uid}`), { lastLocation: loc });
+           }
+        },
+        (err) => {
+           console.error("GPS Error:", err);
+           toast.error("GPS access denied. Live tracking disabled.");
+        },
         { enableHighAccuracy: true }
       );
+    } else {
+       toast.error("Your device does not support GPS tracking.");
     }
   };
 
