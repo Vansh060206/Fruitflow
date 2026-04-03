@@ -5,7 +5,7 @@
       ".indexOn": ["phone", "email", "role", "driverStatus"],
       "$uid": {
         ".read": "auth != null",
-        ".write": "auth != null && (auth.uid === $uid || !data.exists())"
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'wholesaler')"
       }
     },
     "inventory": {
@@ -14,19 +14,23 @@
     },
     "orders": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["createdAt", "status"]
     },
     "retailer_orders": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["createdAt", "status"]
     },
     "driver_orders": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["status", "createdAt"]
     },
     "order_alerts": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["createdAt"]
     },
     "dispatch_alerts": {
       ".read": "auth != null",
@@ -35,10 +39,6 @@
     "negotiation_counts": {
       ".read": "auth != null",
       ".write": "auth != null"
-    },
-    "otps": {
-      ".read": "true",
-      ".write": "true"
     },
     "wastage": {
       ".read": "auth != null",
@@ -52,7 +52,13 @@
     },
     "mandi_prices": {
       ".read": "true",
-      ".write": "true"
+      ".write": "true",
+      ".indexOn": ["state", "mandiName", "commodity"]
+    },
+    "otps": {
+      ".read": "true",
+      ".write": "true",
+      ".indexOn": ["timestamp"]
     },
     "stock_requests": {
       ".read": "auth != null",
@@ -60,7 +66,10 @@
     },
     "notifications": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "$uid": {
+          ".indexOn": ["createdAt", "type", "read"]
+      }
     }
   }
 }
