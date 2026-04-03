@@ -71,11 +71,11 @@ function PaymentsContent() {
         const dataArray = Object.keys(data).map(key => ({
           id: key,
           amount: data[key].totalAmount || 0,
-          date: data[key].createdAt ? new Date(data[key].createdAt).toISOString().split('T')[0] : "2024-01-01",
+          createdAt: data[key].createdAt || 0,
           status: data[key].paymentStatus || "pending"
         }));
-        // Sort by newest first
-        setPayments(dataArray.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        // Sort by newest first using raw timestamp
+        setPayments(dataArray.sort((a, b) => b.createdAt - a.createdAt));
       } else {
         setPayments([]);
       }
@@ -98,7 +98,7 @@ function PaymentsContent() {
     return (
       payment.id.toLowerCase().includes(query) ||
       payment.amount.toString().includes(query) ||
-      payment.date.includes(query) ||
+      new Date(payment.createdAt).toLocaleString().toLowerCase().includes(query) ||
       payment.status.toLowerCase().includes(query)
     );
   });
@@ -154,13 +154,13 @@ function PaymentsContent() {
                         <td className="px-6 py-4 text-foreground font-medium dark:text-white">{payment.id}</td>
                         <td className="px-6 py-4 text-foreground dark:text-white">₹{payment.amount.toFixed(2)}</td>
                         <td className="px-6 py-4 text-muted-foreground dark:text-white/60">
-                          {new Date(payment.date).toLocaleString("en-US", {
-                            year: "numeric",
+                          {payment.createdAt ? new Date(payment.createdAt).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
+                            year: "numeric",
                             hour: "2-digit",
                             minute: "2-digit"
-                          })}
+                          }) : t("pending")}
                         </td>
                         <td className="px-6 py-4">
                           {payment.status === "paid" ? (
@@ -215,13 +215,13 @@ function PaymentsContent() {
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-sm dark:text-white/60">{t("date")}</span>
                         <span className="text-muted-foreground text-sm dark:text-white/60">
-                          {new Date(payment.date).toLocaleString("en-US", {
-                            year: "numeric",
+                          {payment.createdAt ? new Date(payment.createdAt).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
+                            year: "numeric",
                             hour: "2-digit",
                             minute: "2-digit"
-                          })}
+                          }) : t("pending")}
                         </span>
                       </div>
                     </div>
