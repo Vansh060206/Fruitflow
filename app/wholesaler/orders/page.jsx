@@ -173,12 +173,12 @@ function OrdersPageContent() {
           id: key,
           ...data[key],
           date: new Date(data[key].createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        }));
+        })).filter(o => o.status !== 'rejected_negotiation'); // HIDE REJECTED
       }
       setOrders(prev => {
         // Keep alerts that aren't yet in the main orders list
         const mainIds = ordersArray.map(o => o.id);
-        const activeAlerts = prev.filter(p => p.isAlert && !mainIds.includes(p.id));
+        const activeAlerts = prev.filter(p => p.isAlert && !mainIds.includes(p.id) && p.status !== 'rejected_negotiation');
         return [...ordersArray, ...activeAlerts].sort((a, b) => b.createdAt - a.createdAt);
       });
       setIsLoading(false);

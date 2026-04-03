@@ -343,21 +343,28 @@ function RetailerCartContent() {
                   {negotiationCount < 10 ? (
                     <button
                       onClick={() => {
-                          const defaultPrices = {};
-                          cartItems.forEach(item => {
-                             defaultPrices[item.id] = item.price.toString();
-                          });
-                          setNegotiationPrices(defaultPrices);
-                          setIsNegotiateModalOpen(true);
+                        const defaultPrices = {};
+                        cartItems.forEach((item) => {
+                          defaultPrices[item.id] = item.price.toString();
+                        });
+                        setNegotiationPrices(defaultPrices);
+                        setIsNegotiateModalOpen(true);
                       }}
                       disabled={isCheckingOut}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold flex items-center justify-center gap-2 py-3 rounded-lg transition-all duration-300 disabled:opacity-70"
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold flex items-center justify-center gap-2 py-3 rounded-lg transition-all duration-300 disabled:opacity-70 group"
                     >
-                      <Handshake className="w-5 h-5" /> Negotiate Custom Price ({10 - negotiationCount} left)
+                      <Handshake className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      <div>
+                        <p className="text-sm">Negotiate Custom Price</p>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest leading-none mt-0.5">
+                          {10 - negotiationCount} attempts remaining
+                        </p>
+                      </div>
                     </button>
                   ) : (
-                    <div className="w-full bg-muted/50 text-muted-foreground text-sm font-semibold flex items-center justify-center gap-2 py-3 rounded-lg border border-border/50 dark:bg-white/5 dark:border-white/10 text-center px-4">
-                      Negotiation Limit Reached (10/10)
+                    <div className="w-full bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 py-4 rounded-lg border border-border/50 dark:bg-white/5 dark:border-white/10 text-center px-4">
+                      <X className="w-3 h-3 text-red-500" /> 
+                      Daily Negotiation Limit Reached
                     </div>
                   )}
                 </div>

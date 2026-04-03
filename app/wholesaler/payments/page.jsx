@@ -39,9 +39,12 @@ function WholesalerPaymentsContent() {
 
         Object.keys(orders).forEach(orderId => {
           const order = orders[orderId];
+          
+          // HIDE REJECTED NEGOTIATIONS FROM PAYMENTS
+          if (order.status === "rejected_negotiation") return;
+
           const retailerId = order.retailerId || "unknown";
           const retailerName = order.retailerName || "Unnamed Retailer";
-
           const paymentStatus = order.paymentStatus || "pending";
 
           if (paymentStatus === "pending") {

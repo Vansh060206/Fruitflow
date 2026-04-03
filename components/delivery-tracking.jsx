@@ -22,10 +22,10 @@ export function DeliveryTracking({ order }) {
   const steps = [
     { label: "Order Placed", status: "completed", desc: "We've received your order" },
     { label: "Confirmed", status: (order.status !== 'pending' && order.status !== 'pending_negotiation') ? 'completed' : 'pending', desc: "Wholesaler has confirmed" },
-    { label: "Driver Assigned", status: delivery.status ? 'completed' : 'pending', desc: delivery.driverName || "Finding a partner" },
-    { label: "Picked Up", status: ['picked_up', 'in_transit', 'delivered'].includes(delivery.status) ? 'completed' : 'pending', desc: "Partner at warehouse" },
-    { label: "On the Way", status: ['in_transit', 'delivered'].includes(delivery.status) ? 'completed' : 'active', desc: "Arriving at your store" },
-    { label: "Delivered", status: delivery.status === 'delivered' ? 'completed' : 'pending', desc: "Enjoy your fresh fruits!" }
+    { label: "Driver Assigned", status: (delivery.status || order.status === 'delivered') ? 'completed' : 'pending', desc: delivery.driverName || "Finding a partner" },
+    { label: "Picked Up", status: ['picked_up', 'in_transit', 'delivered'].includes(delivery.status) || order.status === 'delivered' ? 'completed' : 'pending', desc: "Partner at warehouse" },
+    { label: "On the Way", status: ['in_transit', 'delivered'].includes(delivery.status) || order.status === 'delivered' ? 'completed' : 'active', desc: "Arriving at your store" },
+    { label: "Delivered", status: (delivery.status === 'delivered' || order.status === 'delivered') ? 'completed' : 'pending', desc: "Enjoy your fresh fruits!" }
   ];
 
   const getStepIconColor = (status) => {

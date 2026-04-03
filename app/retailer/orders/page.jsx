@@ -61,7 +61,18 @@ function RetailerOrdersContent() {
           id: key,
           ...data[key],
           date: new Date(data[key].createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        })).sort((a, b) => b.createdAt - a.createdAt);
+        })).sort((a, b) => {
+          const aStatus = (a.status || 'pending').toLowerCase();
+          const bStatus = (b.status || 'pending').toLowerCase();
+
+          // 1. REJECTED IS ALWAYS BOTTOMEST (User doesn't need to see dead orders)
+          const aRejected = aStatus === 'rejected_negotiation';
+          const bRejected = bStatus === 'rejected_negotiation';
+          if (aRejected !== bRejected) return aRejected ? 1 : -1;
+
+          // 2. RECENCY IS NOW KING (The last thing I did/saw is at the top)
+          return b.createdAt - a.createdAt;
+        });
         
         setOrders(initialOrders);
       } else {
@@ -423,20 +434,20 @@ function RetailerOrdersContent() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="text-left sm:text-right">
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₹{(order.totalAmount || 0).toFixed(2)}</p>
-                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${selectedOrder?.status?.toLowerCase() === "delivered" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : order.status === "accepted_negotiation" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-orange-500/10 text-orange-600 dark:text-orange-400"}`}>
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${order.status?.toLowerCase() === "delivered" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : order.status === "accepted_negotiation" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-orange-500/10 text-orange-600 dark:text-orange-400"}`}>
                       {order.status?.toLowerCase() === "delivered" ? (
                         <>
-                          <CheckCircle2 className="w-3 h-3" />
+                          <CheckCircle2 className="w-4 h-4" />
                           {t("delivered")}
                         </>
                       ) : order.status === "accepted_negotiation" ? (
                         <>
-                          <CheckCircle2 className="w-3 h-3" />
+                          <CheckCircle2 className="w-4 h-4" />
                           Offer Accepted
                         </>
                       ) : (
                         <>
-                          <Clock className="w-3 h-3" />
+                          <Clock className="w-4 h-4" />
                           {order.status === 'pending_negotiation' ? "Negotiating" : t(order.status || "pending")}
                         </>
                       )}

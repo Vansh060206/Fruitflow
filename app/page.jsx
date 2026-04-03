@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Leaf, TrendingUp, Cpu, ShieldCheck, Network, Sparkles, Sprout, ShoppingCart, Truck } from "lucide-react";
+import { ArrowRight, Leaf, TrendingUp, Cpu, ShieldCheck, Network, Sparkles, Sprout, ShoppingCart, Truck, Github, Linkedin, Mail, Phone, ExternalLink } from "lucide-react";
 
 const fruitsData = [
   { emoji: "🥭", left: "10%", top: "20%", delay: 0, duration: 20 },
@@ -244,16 +244,100 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-border bg-muted/20 py-12 px-6">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <Sprout className="w-6 h-6 text-emerald-500" />
-              <span className="text-xl font-bold">FruitFlow Technologies</span>
+        {/* Premium Footer */}
+        <footer className="relative border-t border-border bg-card/30 backdrop-blur-md pt-20 pb-12 px-6 overflow-hidden">
+          {/* Footer Background Glow */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 mb-16">
+              {/* Brand Column */}
+              <div className="lg:col-span-1">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <Sprout className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-emerald-700 dark:from-emerald-400 dark:to-emerald-200">
+                    FruitFlow
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+                  The ultimate B2B platform for agricultural logistics. Streamlining the path from wholesale to retail with AI-driven efficiency.
+                </p>
+                <div className="flex gap-4">
+                  <a href="https://github.com/Vansh060206/Fruitflow" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all">
+                    <Github className="w-5 h-5" />
+                  </a>
+                  <a href="#" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all">
+                    <ExternalLink className="w-5 h-5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Developer Team Column */}
+              <div className="lg:col-span-3">
+                <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-emerald-500" />
+                  Core Development Team
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Developer 1: Vansh */}
+                  <div className="group p-6 rounded-2xl bg-muted/50 border border-border hover:border-emerald-500/30 transition-all hover:bg-muted/80">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="text-xl font-black">Mankani Vansh H</h4>
+                        <p className="text-emerald-500 text-xs font-bold uppercase tracking-widest mt-1">Lead Software Architect</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-emerald-500/10 flex items-center justify-center font-bold text-xl text-emerald-600">VM</div>
+                    </div>
+                    <div className="space-y-2 mb-6">
+                      <a href="mailto:mankanivansh273@gmail.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-emerald-500 transition-colors">
+                        <Mail className="w-4 h-4" /> mankanivansh273@gmail.com
+                      </a>
+                      <a href="tel:+916352924440" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-emerald-500 transition-colors">
+                        <Phone className="w-4 h-4" /> +91 63529 24440
+                      </a>
+                    </div>
+                    <a href="https://www.linkedin.com/in/vansh-mankani-9aa1a8316" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-background border border-border font-bold text-sm group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      <Linkedin className="w-4 h-4" /> Connect on LinkedIn
+                    </a>
+                  </div>
+
+                  {/* Developer 2: Dev Naik */}
+                  <div className="group p-6 rounded-2xl bg-muted/50 border border-border hover:border-blue-500/30 transition-all hover:bg-muted/80">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="text-xl font-black">Dev Naik</h4>
+                        <p className="text-blue-500 text-xs font-bold uppercase tracking-widest mt-1">Full-Stack Developer</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-500/10 flex items-center justify-center font-bold text-xl text-blue-600">DN</div>
+                    </div>
+                    <div className="space-y-2 mb-6">
+                      <a href="mailto:devnaik.1102@gmail.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-500 transition-colors">
+                        <Mail className="w-4 h-4" /> devnaik.1102@gmail.com
+                      </a>
+                      <a href="tel:+919104525069" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-500 transition-colors">
+                        <Phone className="w-4 h-4" /> +91 91045 25069
+                      </a>
+                    </div>
+                    <a href="https://www.linkedin.com/in/dev-naik-72a08831a?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-background border border-border font-bold text-sm group-hover:bg-blue-500 group-hover:text-white transition-all">
+                      <Linkedin className="w-4 h-4" /> Connect on LinkedIn
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground text-sm text-center md:text-left">
-              &copy; {new Date().getFullYear()} FruitFlow. All rights reserved. A Portfolio Masterpiece.
-            </p>
+
+            <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm text-center md:text-left">
+                &copy; {new Date().getFullYear()} FruitFlow. All rights reserved. A Portfolio Masterpiece by Vansh & Dev.
+              </p>
+              <div className="flex items-center gap-6 text-sm font-bold text-muted-foreground">
+                <a href="#" className="hover:text-emerald-500 transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-emerald-500 transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-emerald-500 transition-colors">Documentation</a>
+              </div>
+            </div>
           </div>
         </footer>
 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { Card } from "@/components/ui/card";
 import { useCart } from "@/lib/cart-context";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -110,6 +110,91 @@ const fruitsData = [
 ];
 
 import { useLanguage } from "@/lib/language-context";
+
+const FruitCard = memo(({ fruit, index, favorites, toggleFavorite, t, mounted, getFreshnessLabel, getFreshnessColor, setRequestingFruit }) => (
+  <Card
+    className={`relative bg-card/50 backdrop-blur-sm border border-border p-3 sm:p-6 hover:border-purple-500/40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl cursor-default group overflow-hidden dark:bg-white/5 dark:border-white/10 dark:hover:border-purple-500/30 ${mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+    style={{ transitionDelay: `${index * 15}ms` }}
+  >
+    {/* Favorite Button */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleFavorite(fruit);
+      }}
+      className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-10 ${favorites[fruit.id] ? "bg-red-500 text-white fill-current" : "bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white dark:bg-purple-500/20 dark:text-purple-400"}`}
+    >
+      <Heart className={`w-4 h-4 ${favorites[fruit.id] ? "fill-current" : ""}`} />
+    </button>
+
+    {/* Stock Badge */}
+    {fruit.inStock && (
+      <div className="absolute top-3 right-3 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
+        {t("inStock")}
+      </div>
+    )}
+
+    {/* Fruit Image */}
+    <div className="relative mb-4 overflow-hidden rounded-2xl bg-muted/30 dark:bg-white/5">
+      <div className="text-5xl md:text-7xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 flex items-center justify-center py-8">
+        {fruit.image}
+      </div>
+    </div>
+
+    {/* Info */}
+    <div className="mb-3 min-w-0">
+      <h3 className="text-base sm:text-lg font-bold text-foreground mb-1 dark:text-white leading-tight truncate">{t(fruit.name)}</h3>
+      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground dark:text-white/40 min-w-0">
+        <Store className="w-3 h-3 shrink-0" />
+        <span className="truncate italic">{fruit.wholesalerName}</span>
+      </div>
+    </div>
+
+    {/* Freshness Indicator */}
+    <div className="mb-4 sm:mb-6">
+      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+        <span className="text-muted-foreground text-[10px] sm:text-xs font-medium dark:text-white/50">{t("freshness")}</span>
+        <span className="text-foreground text-[10px] sm:text-xs font-bold dark:text-white/80">{getFreshnessLabel(fruit.freshness)}</span>
+      </div>
+      <div className="w-full bg-muted rounded-full h-1 sm:h-1.5 overflow-hidden dark:bg-white/10">
+        <div
+          className={`h-full ${getFreshnessColor(fruit.freshness)} transition-all duration-1000 rounded-full`}
+          style={{
+            width: mounted ? `${fruit.freshness}%` : "0%",
+            transitionDelay: `${index * 15 + 100}ms`,
+          }}
+        />
+      </div>
+    </div>
+
+    {/* Price and Stock */}
+    <div className="mb-4 sm:mb-6">
+      <div className="flex items-baseline mb-1 sm:mb-2 flex-wrap min-w-0">
+        <span className="text-xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 truncate">₹{fruit.price.toFixed(2)}</span>
+        <span className="text-muted-foreground text-[10px] sm:text-xs font-medium ml-1 dark:text-white/40">/kg</span>
+      </div>
+      <div className="text-[10px] sm:text-xs text-muted-foreground font-medium dark:text-white/50 truncate">
+        Available: {fruit.quantity} kg
+      </div>
+    </div>
+
+    {/* Actions */}
+    <div className="flex gap-2">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setRequestingFruit(fruit);
+        }}
+        className="w-full bg-purple-600/10 hover:bg-purple-600 text-purple-700 hover:text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500 dark:hover:text-white"
+      >
+        <ShoppingCart className="w-5 h-5 transition-transform group-hover:scale-110" />
+        {t("addToCart")}
+      </button>
+    </div>
+  </Card>
+));
+
+FruitCard.displayName = "FruitCard";
 
 function RetailerBrowseContent() {
   const [mounted, setMounted] = useState(false);
@@ -374,87 +459,18 @@ function RetailerBrowseContent() {
           {/* Fruits Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {filteredFruits.map((fruit, index) => (
-              <Card
+              <FruitCard
                 key={fruit.id}
-                className={`relative bg-card/50 backdrop-blur-sm border border-border p-3 sm:p-6 hover:border-purple-500/40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl cursor-default group overflow-hidden dark:bg-white/5 dark:border-white/10 dark:hover:border-purple-500/30 ${mounted ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
-                style={{ transitionDelay: `${index * 30}ms` }}
-              >
-                {/* Favorite Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(fruit);
-                  }}
-                  className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-10 ${favorites[fruit.id] ? "bg-red-500 text-white fill-current" : "bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white dark:bg-purple-500/20 dark:text-purple-400"}`}
-                >
-                  <Heart className={`w-4 h-4 ${favorites[fruit.id] ? "fill-current" : ""}`} />
-                </button>
-
-                {/* Stock Badge */}
-                {fruit.inStock && (
-                  <div className="absolute top-3 right-3 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">
-                    {t("inStock")}
-                  </div>
-                )}
-
-                {/* Fruit Image */}
-                <div className="relative mb-4 overflow-hidden rounded-2xl bg-muted/30 dark:bg-white/5">
-                  <div className="text-5xl md:text-7xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 flex items-center justify-center py-8">
-                    {fruit.image}
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="mb-3 min-w-0">
-                  <h3 className="text-base sm:text-lg font-bold text-foreground mb-1 dark:text-white leading-tight truncate">{t(fruit.name)}</h3>
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground dark:text-white/40 min-w-0">
-                    <Store className="w-3 h-3 shrink-0" />
-                    <span className="truncate italic">{fruit.wholesalerName}</span>
-                  </div>
-                </div>
-
-                {/* Freshness Indicator */}
-                <div className="mb-4 sm:mb-6">
-                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                    <span className="text-muted-foreground text-[10px] sm:text-xs font-medium dark:text-white/50">{t("freshness")}</span>
-                    <span className="text-foreground text-[10px] sm:text-xs font-bold dark:text-white/80">{getFreshnessLabel(fruit.freshness)}</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1 sm:h-1.5 overflow-hidden dark:bg-white/10">
-                    <div
-                      className={`h-full ${getFreshnessColor(fruit.freshness)} transition-all duration-1000 rounded-full`}
-                      style={{
-                        width: mounted ? `${fruit.freshness}%` : "0%",
-                        transitionDelay: `${index * 30 + 100}ms`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Price and Stock */}
-                <div className="mb-4 sm:mb-6">
-                  <div className="flex items-baseline mb-1 sm:mb-2 flex-wrap min-w-0">
-                    <span className="text-xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 truncate">₹{fruit.price.toFixed(2)}</span>
-                    <span className="text-muted-foreground text-[10px] sm:text-xs font-medium ml-1 dark:text-white/40">/kg</span>
-                  </div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground font-medium dark:text-white/50 truncate">
-                    Available: {fruit.quantity} kg
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRequestingFruit(fruit);
-                    }}
-                    className="w-full bg-purple-600/10 hover:bg-purple-600 text-purple-700 hover:text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 dark:bg-purple-500/20 dark:text-purple-400 dark:hover:bg-purple-500 dark:hover:text-white"
-                  >
-                    <ShoppingCart className="w-5 h-5 transition-transform group-hover:scale-110" />
-                    {t("addToCart")}
-                  </button>
-                </div>
-              </Card>
+                fruit={fruit}
+                index={index}
+                favorites={favorites}
+                toggleFavorite={toggleFavorite}
+                t={t}
+                mounted={mounted}
+                getFreshnessLabel={getFreshnessLabel}
+                getFreshnessColor={getFreshnessColor}
+                setRequestingFruit={setRequestingFruit}
+              />
             ))}
           </div>
 

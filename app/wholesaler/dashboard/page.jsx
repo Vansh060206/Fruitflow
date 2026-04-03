@@ -49,11 +49,13 @@ const recentActivity = [
   { id: 4, action: "Low stock alert", time: "2 hours ago", type: "alert" },
 ];
 
-// Stat card with animated counter
-function StatCard({ title, value, icon: Icon, delay }) {
+import React, { memo } from "react";
+
+// Stat card with animated counter - Memoized for performance
+const StatCard = memo(({ title, value, icon: Icon, delay }) => {
   const [mounted, setMounted] = useState(false);
   const [count, setCount] = useState(0);
-  const targetValue = Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+  const targetValue = useMemo(() => Number.parseFloat(value.replace(/[^0-9.]/g, "")), [value]);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), delay);
@@ -90,7 +92,9 @@ function StatCard({ title, value, icon: Icon, delay }) {
       </p>
     </Card>
   );
-}
+});
+
+StatCard.displayName = "StatCard";
 
 function WholesalerDashboardContent() {
   const [chartMounted, setChartMounted] = useState(false);
