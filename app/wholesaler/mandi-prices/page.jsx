@@ -163,28 +163,28 @@ export default function MandiPricesPage() {
                             {mandiData.map((mandi, i) => (
                                 <Card key={i} className="p-5 hover:shadow-xl transition-all duration-300 group border-border dark:bg-white/5 dark:border-white/10">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                                                 <MapPin className="w-4 h-4 text-blue-500" />
                                             </div>
-                                            <div>
-                                                <h5 className="font-bold text-foreground dark:text-white leading-none">{mandi.mandiName}</h5>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{mandi.state}</p>
+                                            <div className="min-w-0">
+                                                <h5 className="font-bold text-foreground dark:text-white leading-none truncate">{mandi.mandiName}</h5>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 truncate">{mandi.state}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0">
                                             <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">₹{mandi.priceModal}/kg</span>
                                         </div>
                                     </div>
                                     
                                     <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-4">
-                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10">
-                                            <p className="text-[9px] uppercase font-bold tracking-tighter">Min Price</p>
-                                            <p className="text-foreground font-black text-sm dark:text-white">₹{mandi.priceMin}</p>
+                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10 min-w-0">
+                                            <p className="text-[9px] uppercase font-bold tracking-tighter truncate">Min Price</p>
+                                            <p className="text-foreground font-black text-sm dark:text-white truncate">₹{mandi.priceMin}</p>
                                         </div>
-                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10">
-                                            <p className="text-[9px] uppercase font-bold tracking-tighter">Max Price</p>
-                                            <p className="text-foreground font-black text-sm dark:text-white">₹{mandi.priceMax}</p>
+                                        <div className="flex-1 p-2 bg-muted/30 rounded-lg dark:bg-white/5 border border-transparent group-hover:border-green-500/10 min-w-0">
+                                            <p className="text-[9px] uppercase font-bold tracking-tighter truncate">Max Price</p>
+                                            <p className="text-foreground font-black text-sm dark:text-white truncate">₹{mandi.priceMax}</p>
                                         </div>
                                     </div>
                                     

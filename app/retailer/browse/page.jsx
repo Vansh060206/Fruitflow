@@ -301,7 +301,7 @@ function RetailerBrowseContent() {
   }, [liveFruits, searchTerm, minPrice, maxPrice]);
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
       {/* Search and Filter Bar */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -372,7 +372,7 @@ function RetailerBrowseContent() {
       ) : (
         <>
           {/* Fruits Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {filteredFruits.map((fruit, index) => (
               <Card
                 key={fruit.id}
@@ -409,7 +409,7 @@ function RetailerBrowseContent() {
                   <h3 className="text-base sm:text-lg font-bold text-foreground mb-1 dark:text-white leading-tight truncate">{t(fruit.name)}</h3>
                   <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground dark:text-white/40 min-w-0">
                     <Store className="w-3 h-3 shrink-0" />
-                    <span className="truncate">{fruit.wholesalerName}</span>
+                    <span className="truncate italic">{fruit.wholesalerName}</span>
                   </div>
                 </div>
 

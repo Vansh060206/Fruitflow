@@ -251,7 +251,7 @@ function RetailerOrdersContent() {
   };
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-2 sm:p-6 max-w-full overflow-x-hidden">
       {showToast && (
         <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-5 duration-300">
           <Card className="bg-purple-600/90 backdrop-blur-xl border-purple-400/20 px-6 py-4 shadow-[0_0_30px_rgba(168,85,247,0.3)] dark:bg-purple-500/90">
@@ -275,7 +275,7 @@ function RetailerOrdersContent() {
       {selectedOrder && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-300" onClick={() => setSelectedOrder(null)} />
-          <div className="fixed inset-x-0 bottom-0 top-[20%] sm:right-0 sm:top-0 sm:left-auto sm:bottom-0 h-[80vh] sm:h-full w-full max-w-full sm:max-w-2xl bg-background/95 backdrop-blur-xl border-t sm:border-l border-border z-[70] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-right duration-500 rounded-t-[2rem] sm:rounded-none dark:bg-[#0a0a0a]/95 dark:border-purple-500/20">
+          <div className="fixed inset-x-0 bottom-0 top-[15%] sm:right-0 sm:top-0 sm:left-auto sm:bottom-0 h-[85vh] sm:h-full w-full max-w-full sm:max-w-2xl bg-background/95 backdrop-blur-xl border-t sm:border-l border-border z-[70] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-right duration-500 rounded-t-[2.5rem] sm:rounded-none dark:bg-[#0a0a0a]/95 dark:border-purple-500/20">
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-border dark:border-white/10">
                 <div>
@@ -299,7 +299,7 @@ function RetailerOrdersContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <Card className="bg-card/50 backdrop-blur-sm border-border p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 dark:bg-white/5 dark:border-purple-500/10" style={{ animationDelay: "100ms" }}>
                   <p className="text-muted-foreground text-sm mb-1 dark:text-white/60">{t("orderId")}</p>
                   <p className="text-foreground font-bold text-lg dark:text-white">{selectedOrder.id}</p>
@@ -346,7 +346,7 @@ function RetailerOrdersContent() {
                     <div className="flex items-center gap-4">
                       <div className="text-4xl">{item.image}</div>
                       <div className="flex-1">
-                        <h4 className="text-foreground font-semibold dark:text-white">{t(item.name)}</h4>
+                        <h4 className="text-foreground font-semibold dark:text-white truncate">{t(item.name)}</h4>
                         <p className="text-muted-foreground text-sm dark:text-white/60">
                           {item.quantity} kg × ₹{(item.proposedPrice || item.price || 0).toFixed(2)}/kg
                         </p>
@@ -409,14 +409,14 @@ function RetailerOrdersContent() {
           </div>
         ) : (
           orders.map((order, index) => (
-            <Card key={order.id} className={`bg-card/50 backdrop-blur-sm border-border p-4 sm:p-6 transition-all duration-500 dark:bg-white/5 dark:border-purple-500/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`} style={{ transitionDelay: `${index * 100}ms` }}>
+            <Card key={order.id} className={`bg-card/50 backdrop-blur-sm border-border p-3 sm:p-6 transition-all duration-500 dark:bg-white/5 dark:border-purple-500/10 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`} style={{ transitionDelay: `${index * 100}ms` }}>
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
                     <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-semibold text-foreground dark:text-white truncate max-w-[140px] sm:max-w-none">#{order.id.slice(-10)}</h3>
+                    <h3 className="text-sm sm:text-base font-semibold text-foreground dark:text-white truncate max-w-[120px] sm:max-w-none">#{order.id.slice(-10)}</h3>
                     <p className="text-muted-foreground text-sm dark:text-white/60">{t("orderedOn")} {order.date}</p>
                   </div>
                 </div>

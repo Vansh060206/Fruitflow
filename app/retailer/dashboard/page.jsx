@@ -254,7 +254,7 @@ function RetailerDashboardContent() {
   }, [aiInsights.length]);
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
       {isNewUser && (
         <Card className="bg-purple-500/10 border-purple-500/20 p-6 mb-8 mt-2 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -274,7 +274,7 @@ function RetailerDashboardContent() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
         <StatCard title={t("todaysBestPrices")} value="24" icon={TrendingDown} delay={0} suffix={" " + t("items")} />
         <StatCard title={t("activeOrders")} value={displayActiveOrders} icon={Clock} delay={100} />
         <StatCard title={t("pendingPayments")} value={displayPendingPayments} icon={DollarSign} delay={200} />
@@ -454,7 +454,7 @@ function RetailerDashboardContent() {
             <p className="text-muted-foreground">Marketplace is currently empty. Waiting for wholesalers to list fruits.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {recommendedFruits.map((fruit, index) => (
               <Card key={fruit.id} className={`bg-card/50 backdrop-blur-sm border-border p-6 hover:border-purple-500/30 hover:shadow-xl transition-all duration-500 cursor-pointer group dark:bg-white/5 dark:border-purple-500/10 dark:hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`} style={{ transitionDelay: `${index * 100 + 400}ms` }}>
                 {fruit.discount && (

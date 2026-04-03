@@ -426,7 +426,7 @@ function InventoryPageContent() {
   });
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
       
       {/* Pending Requests Banner */}
       {pendingRequests.length > 0 && (
@@ -523,7 +523,7 @@ function InventoryPageContent() {
       ) : (
         <>
           {/* Inventory Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {filteredInventory.map((item, index) => {
               const quantityPercentage = (item.quantity / item.maxQuantity) * 100;
               const isLowStock = item.status === "low-stock";
@@ -569,7 +569,7 @@ function InventoryPageContent() {
                   </div>
 
                   {/* Fruit Name */}
-                  <h3 className="text-xl font-semibold text-foreground mb-4 text-center dark:text-white">{t(item.name)}</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-4 text-center dark:text-white truncate px-2">{t(item.name)}</h3>
 
                   {/* Quantity Indicator */}
                   <div className="space-y-2 mb-4">

@@ -582,10 +582,10 @@ function OrdersPageContent() {
               <h3 className="font-bold text-foreground mb-4 dark:text-white">Items Ordered</h3>
               <div className="space-y-3">
                 {selectedOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 bg-muted/50 p-3 rounded-lg border border-border/50 dark:bg-white/5 dark:border-white/5">
-                    <div className="text-4xl">{item.image || "📦"}</div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <p className="font-semibold text-foreground dark:text-white">{item.name}</p>
+                  <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 bg-muted/50 p-3 rounded-lg border border-border/50 dark:bg-white/5 dark:border-white/5 min-w-0">
+                    <div className="text-4xl shrink-0">{item.image || "📦"}</div>
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <p className="font-semibold text-foreground dark:text-white truncate">{item.name}</p>
                       <p className="text-sm text-muted-foreground dark:text-white/60">
                         {item.proposedPrice ? (
                           <>

@@ -349,7 +349,7 @@ function WholesalerDashboardContent() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard title={t("todaysSales")} value={displaySales} icon={TrendingUp} delay={0} />
         <StatCard title={t("activeOrders")} value={displayOrders} icon={ShoppingCart} delay={100} />
         <StatCard title={t("stockRemaining")} value={displayStock} icon={Package} delay={200} />
