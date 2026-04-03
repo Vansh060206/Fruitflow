@@ -276,7 +276,18 @@ function RetailerDashboardContent() {
   }, [aiInsights.length]);
 
   return (
-    <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
+    <>
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .animate-shimmer {
+          animation: shimmer 3s infinite linear;
+        }
+      `}</style>
+
+      <div className="p-2 sm:p-6 space-y-6 max-w-full overflow-x-hidden">
       {isNewUser && (
         <Card className="bg-purple-500/10 border-purple-500/20 p-6 mb-8 mt-2 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -437,36 +448,50 @@ function RetailerDashboardContent() {
                       </div>
                    </div>
 
-                   {/* Progress Visualizer */}
-                   <div className="flex-1 max-w-md hidden md:block px-8 relative">
-                      <div className="flex justify-between mb-2.5 px-0.5">
-                         <span className="text-[9px] font-black uppercase text-purple-500 tracking-tighter">Processed</span>
-                         <span className={`text-[9px] font-black uppercase tracking-tighter ${['accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(order.status) ? 'text-purple-500' : 'text-muted-foreground opacity-50'}`}>Logistics</span>
-                         <span className={`text-[9px] font-black uppercase tracking-tighter ${['picked_up', 'in_transit'].includes(order.status) ? 'text-purple-500' : 'text-muted-foreground opacity-50'}`}>On Road</span>
+                   {/* Modern Shipment Tracker Progress */}
+                   <div className="flex-1 max-w-lg hidden md:block px-8">
+                      <div className="flex justify-between mb-3 px-1">
+                         {[
+                           { label: "Processed", step: "processed", active: true },
+                           { label: "Logistics", step: "logistics", active: ['accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(order.status) },
+                           { label: "On Road", step: "on_road", active: ['picked_up', 'in_transit'].includes(order.status) }
+                         ].map((s, i) => (
+                           <span key={i} className={`text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${s.active ? "text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]" : "text-muted-foreground/30"}`}>
+                              {s.label}
+                           </span>
+                         ))}
                       </div>
-                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden dark:bg-white/5 border border-white/5">
+                      <div className="h-2 w-full bg-zinc-100 dark:bg-white/5 rounded-full overflow-hidden p-[1px] border border-white/5">
                          <div 
-                          className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-1000 shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
+                          className={`h-full bg-gradient-to-r from-purple-600 via-indigo-500 to-emerald-400 transition-all duration-1000 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.5)] ${['picked_up', 'in_transit'].includes(order.status) ? 'animate-shimmer' : ''}`}
                           style={{ 
                             width: order.status === 'delivered' ? '100%' : 
                                    ['picked_up', 'in_transit'].includes(order.status) ? '80%' :
-                                   ['accepted', 'accepted_negotiation'].includes(order.status) ? '45%' : '15%'
+                                   ['accepted', 'accepted_negotiation'].includes(order.status) ? '45%' : '15%',
+                            backgroundSize: '200% 100%'
                           }}
                          />
                       </div>
                    </div>
 
-                   <div className="flex items-center gap-5">
+                   <div className="flex items-center gap-6">
                       <div className="text-right">
-                         <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${order.paymentStatus === 'paid' ? 'text-emerald-500' : 'text-orange-500 animate-pulse'}`}>
-                            {order.paymentStatus === 'paid' ? '● PAID' : '● PAYMENT PENDING'}
+                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 ${order.paymentStatus === 'paid' ? 'text-emerald-500' : 'text-orange-500 animate-pulse'}`}>
+                            {order.paymentStatus === 'paid' ? '● PAYMENT SETTLED' : '● ACTION REQUIRED'}
                          </p>
-                         <p className="text-sm font-black text-foreground dark:text-white uppercase italic tracking-tighter">
+                         <p className="text-sm font-black text-foreground dark:text-white uppercase italic tracking-tight flex items-center justify-end gap-2">
                             {order.status.replace('_', ' ')}
+                            {['picked_up', 'in_transit'].includes(order.status) && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
                          </p>
                       </div>
-                      <button className="w-10 h-10 flex items-center justify-center bg-purple-500/10 rounded-xl hover:bg-purple-500 hover:text-white transition-all text-purple-500">
-                         <Clock className="w-5 h-5" />
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push('/retailer/orders');
+                        }}
+                        className="w-12 h-12 flex items-center justify-center bg-purple-600 text-white rounded-2xl hover:bg-purple-500 hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(147,51,234,0.3)] group"
+                      >
+                         <Navigation className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
                    </div>
                 </Card>
@@ -599,6 +624,7 @@ function RetailerDashboardContent() {
         </div>
       </Card>
     </div>
+    </>
   );
 }
 
