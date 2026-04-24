@@ -181,7 +181,7 @@ function WholesalerDashboardContent() {
         lastFourOrders = ordersArray.slice(0, 4);
 
         ordersArray.forEach(order => {
-          if (order.status === "pending") active++;
+          if (['pending', 'pending_negotiation', 'accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(order.status)) active++;
 
           const orderDate = new Date(order.createdAt);
           const isToday = orderDate.toDateString() === new Date().toDateString();

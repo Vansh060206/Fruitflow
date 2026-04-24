@@ -258,7 +258,7 @@ function OrdersPageContent() {
 
   // Calculate stats
   const totalOrders = orders.length;
-  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "pending_negotiation").length;
+  const pendingOrders = orders.filter((o) => ['pending', 'pending_negotiation', 'accepted', 'accepted_negotiation', 'picked_up', 'in_transit'].includes(o.status)).length;
   const totalRevenue = orders.filter((o) => o.paymentStatus === "paid").reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const pendingPayments = orders.filter((o) => o.paymentStatus === "pending").reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
