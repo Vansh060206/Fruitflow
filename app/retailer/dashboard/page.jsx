@@ -222,15 +222,16 @@ function RetailerDashboardContent() {
                 price: product.pricePerKg || 0,
                 image: product.image || "🍎",
                 rating: (Math.random() * (5.0 - 4.2) + 4.2).toFixed(1), // Mock rating since not in DB
-                unit: "/kg"
+                unit: "/kg",
+                createdAt: product.createdAt || product.updatedAt || 0
               });
             }
           });
         });
 
-        // Shuffle and take top 4 for recommendations
-        const shuffled = allProducts.sort(() => 0.5 - Math.random());
-        setRecommendedFruits(shuffled.slice(0, 4));
+        // Sort by newest added to make sure newly added stock shows up consistently
+        const sorted = allProducts.sort((a, b) => b.createdAt - a.createdAt);
+        setRecommendedFruits(sorted.slice(0, 4));
       } else {
         setRecommendedFruits([]);
       }
