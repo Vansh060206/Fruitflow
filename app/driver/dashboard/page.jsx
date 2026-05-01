@@ -337,18 +337,24 @@ export default function DriverDashboard() {
           {/* 3. HISTORY */}
           {activeTab === 'history' && (
             <div className="space-y-3">
-               {deliveryHistory.map(order => (
+               {deliveryHistory.map(order => {
+                 const timestamp = order.updatedAt || order.createdAt;
+                 const dateObj = new Date(timestamp);
+                 const formattedDate = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                 const formattedTime = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                 
+                 return (
                  <div key={order.id} className="bg-zinc-900/30 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-4">
                        <div className="p-2 bg-emerald-500/10 rounded-full"><CheckCircle className="w-4 h-4 text-emerald-500" /></div>
                        <div>
                           <p className="text-sm font-bold leading-none">{order.retailerName}</p>
-                          <p className="text-[10px] text-zinc-500 mt-1 uppercase">Delivered • {new Date(order.createdAt).toLocaleDateString()}</p>
+                          <p className="text-[10px] text-zinc-500 mt-1 uppercase">Delivered • {formattedDate} at {formattedTime}</p>
                        </div>
                     </div>
                     <span className="text-[10px] font-bold text-zinc-600">#{order.id.slice(-6)}</span>
                  </div>
-               ))}
+               )})}
                {deliveryHistory.length === 0 && <div className="text-center py-20 opacity-20 font-bold text-xs uppercase tracking-widest">Archive Empty</div>}
             </div>
           )}
