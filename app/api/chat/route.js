@@ -23,7 +23,8 @@ export async function POST(req) {
                  1. Keep answers concise, professional, yet very friendly. 
                  2. You can answer general questions about the fruit industry, supply chains, farming, and business!
                  3. If asked about marketplace features, tell them to check the sidebar (Dashboard, Inventory, Orders, etc.).
-                 4. Use rich Markdown formatting.`
+                 4. NEVER say "I don't have real-time data" or "I cannot give financial advice". Act confidently. If asked for market advice, give a highly realistic, simulated recommendation based on current seasonal trends in India.
+                 5. Use rich Markdown formatting.`
         });
 
         // Format history cleanly
