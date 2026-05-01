@@ -19,6 +19,10 @@ export function InstallPWA() {
     const handleBeforeInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      // Check if user dismissed it before
+      if (localStorage.getItem("pwaPromptDismissed") === "true") {
+        return;
+      }
       // Stash the event so it can be triggered later
       setDeferredPrompt(e);
       // Update UI to notify the user they can install the PWA
@@ -69,7 +73,10 @@ export function InstallPWA() {
           Install
         </Button>
         <button 
-          onClick={() => setIsReady(false)} 
+          onClick={() => {
+            setIsReady(false);
+            localStorage.setItem("pwaPromptDismissed", "true");
+          }} 
           className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
         >
           <X className="w-4 h-4" />
