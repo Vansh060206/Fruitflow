@@ -126,10 +126,19 @@ export default function DriverDashboard() {
       updates[`orders/${wholesalerId}/${orderId}/delivery`] = payload;
       updates[`retailer_orders/${retailerId}/${orderId}/delivery`] = payload;
 
+      const now = Date.now();
+      updates[`driver_orders/${userData.uid}/${orderId}/updatedAt`] = now;
+      updates[`orders/${wholesalerId}/${orderId}/updatedAt`] = now;
+      if (retailerId && retailerId !== "unknown") {
+         updates[`retailer_orders/${retailerId}/${orderId}/updatedAt`] = now;
+      }
+
       if (newStatus === 'delivered') {
         updates[`driver_orders/${userData.uid}/${orderId}/status`] = "delivered";
         updates[`orders/${wholesalerId}/${orderId}/status`] = "delivered";
-        updates[`retailer_orders/${retailerId}/${orderId}/status`] = "delivered";
+        if (retailerId && retailerId !== "unknown") {
+           updates[`retailer_orders/${retailerId}/${orderId}/status`] = "delivered";
+        }
       }
 
       await update(ref(realtimeDb), updates);
